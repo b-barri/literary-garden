@@ -32,6 +32,7 @@ const books = defineCollection({
     authors: z.string(),
     lang: z.string(),
     wordCount: z.number().int().nonnegative(),
+    coverUrl: z.string().nullable().default(null),
   }),
 });
 

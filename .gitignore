@@ -10,8 +10,11 @@ dist/
 # personal Kindle data — never commit
 # raw: your vocab.db and clippings. processed: the derived JSON of your
 # reading history. Either one makes this repo non-shareable if committed.
+# public/covers/: downloaded book covers keyed by book id — they're public
+# images in themselves, but the *filenames* still reveal your reading list.
 data/raw/
 data/processed/
+public/covers/
 vocabulary/
 *.kfx
 *.azw*

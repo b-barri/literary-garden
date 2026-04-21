@@ -1,0 +1,28 @@
+---
+import BaseLayout from "~/layouts/BaseLayout.astro";
+import PressedAlbum from "~/components/PressedAlbum.svelte";
+import { getCollection } from "astro:content";
+
+const wordEntries = await getCollection("words");
+const bookEntries = await getCollection("books");
+
+const allWords = wordEntries.map((e) => e.data);
+const books = bookEntries.map((e) => e.data);
+---
+
+<BaseLayout title="Pressed Album · Literary Garden">
+  <header class="mb-10">
+    <p class="text-sm uppercase tracking-[0.2em] text-sage-700">a literary garden</p>
+    <h1 class="mt-1 text-5xl text-sage-900">pressed album</h1>
+    <nav class="mt-4 flex gap-4 text-sm text-sage-700">
+      <a href="/" class="hover:text-sage-900">practice</a>
+      <span class="text-sepia">·</span>
+      <a href="/album" class="font-medium">pressed album</a>
+    </nav>
+    <p class="mt-3 text-sepia italic text-sm">
+      words that crossed the 21-day threshold of proven memory. preserved, occasionally visited, no longer in the practice deck.
+    </p>
+  </header>
+
+  <PressedAlbum client:only="svelte" {allWords} {books} />
+</BaseLayout>

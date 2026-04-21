@@ -1,12 +1,22 @@
 <script lang="ts">
   import type { Card } from "ts-fsrs";
-  import { emptyCard, nextState, mastery, type Mastery, type PassiveRating } from "~/lib/scheduler";
-  import { loadCard, saveCard } from "~/lib/progress";
+  import { nextState, mastery, type Mastery, type PassiveRating } from "~/lib/scheduler";
 
   interface Lookup {
     usage: string;
     bookId: string;
     seenAt: string;
+  }
+
+  interface DefinitionMeaning {
+    partOfSpeech: string;
+    definition: string;
+    example: string | null;
+  }
+
+  interface Definition {
+    phonetic: string | null;
+    meanings: DefinitionMeaning[];
   }
 
   interface Props {
@@ -18,47 +28,63 @@
     bookTitle: string;
     bookAuthors: string;
     illustrationSvg: string;
+    coverUrl?: string | null;
+    definition?: Definition | null;
+    card: Card;
+    /** Called with the new Card state when user rates. */
+    onrated: (nextCard: Card, rating: PassiveRating) => void;
+    /** If true, card listens to window keyboard (for single-card practice flow). */
+    captureKeyboard?: boolean;
   }
 
-  const { wordId, word, stem, lang, lookups, bookTitle, bookAuthors, illustrationSvg }: Props = $props();
+  const {
+    wordId,
+    word,
+    stem,
+    lang,
+    lookups,
+    bookTitle,
+    bookAuthors,
+    illustrationSvg,
+    coverUrl = null,
+    definition = null,
+    card,
+    onrated,
+    captureKeyboard = false,
+  }: Props = $props();
 
-  let card: Card = $state(emptyCard());
   let flipped = $state(false);
-  let storageOk = $state(true);
 
-  // Load card state on mount (client-only — progress store guards SSR).
+  // Reset flipped when the card's word changes (Practice flow swaps cards).
   $effect(() => {
-    card = loadCard(wordId);
-    const onStorageFailed = () => { storageOk = false; };
-    window.addEventListener("garden:storage-failed", onStorageFailed);
-    return () => window.removeEventListener("garden:storage-failed", onStorageFailed);
+    void wordId;
+    flipped = false;
   });
 
   const state: Mastery = $derived(mastery(card));
 
-  // Strip the "(Author) (Z-Library)" noise that sideloaded titles drag in.
-  const cleanTitle: string = $derived(
-    bookTitle
-      .replace(/\s*\(Z-Library\)\s*$/i, "")
-      .replace(/\s*\([^()]*\)\s*$/, "")
-      .trim(),
-  );
-
   const recentLookup = $derived(lookups[0]);
+  const shouldPadWithDictExample = $derived(
+    !!recentLookup && recentLookup.usage.length < 30,
+  );
+  const firstMeaning = $derived(definition?.meanings?.[0] ?? null);
 
   function flip() {
     flipped = !flipped;
   }
 
   function rate(rating: PassiveRating) {
-    card = nextState(card, rating);
-    saveCard(wordId, card);
-    flipped = false; // return to the front so the new mastery state is visible
+    const nextCard = nextState(card, rating);
+    onrated(nextCard, rating);
+    flipped = false;
   }
 
   function handleKey(event: KeyboardEvent) {
-    // Ignore if a ratings button is focused — it has its own handlers
     if (event.defaultPrevented) return;
+    // Ignore if focus is on a form element so global shortcuts don't clobber typing.
+    const target = event.target as HTMLElement | null;
+    if (target && /^(INPUT|TEXTAREA|SELECT)$/.test(target.tagName)) return;
+
     switch (event.key) {
       case " ":
       case "Enter":
@@ -77,12 +103,19 @@
     }
   }
 
+  function handleWindowKey(event: KeyboardEvent) {
+    if (!captureKeyboard) return;
+    handleKey(event);
+  }
+
   const masteryLabel: Record<Mastery, string> = {
     seedling: "🌱 seedling — new",
     bloom: "🌸 in bloom — learning",
     pressed: "🏵️ pressed — mature",
   };
 </script>
+
+<svelte:window onkeydown={handleWindowKey} />
 
 <div class="card-scene">
 <div
@@ -93,11 +126,14 @@
   role="button"
   aria-pressed={flipped}
   aria-label={`${word}, ${masteryLabel[state]}. Press space to flip.`}
-  onkeydown={handleKey}
+  onkeydown={captureKeyboard ? undefined : handleKey}
   onclick={flip}
 >
   <!-- FRONT -->
   <div class="face face-front">
+    {#if coverUrl}
+      <img class="cover" src={coverUrl} alt="" />
+    {/if}
     <div class="illustration" aria-hidden="true">
       {@html illustrationSvg}
     </div>
@@ -106,7 +142,7 @@
       <p class="stem" {lang}>/ {stem}</p>
     {/if}
     <p class="book">
-      <cite>{cleanTitle}</cite>
+      <cite>{bookTitle}</cite>
       {#if bookAuthors}<span class="dim">&middot; {bookAuthors}</span>{/if}
     </p>
     <span class="mastery-glyph" aria-hidden="true">
@@ -123,10 +159,24 @@
         <blockquote>&ldquo;{lookup.usage}&rdquo;</blockquote>
       {/each}
     </div>
-    <p class="definition-placeholder">
-      <span class="small-caps">definition</span><br />
-      fetched in phase 3 from dictionaryapi.dev
-    </p>
+
+    {#if firstMeaning}
+      <div class="definition">
+        <p class="phonetic-pos">
+          {#if definition?.phonetic}<span class="phonetic">{definition.phonetic}</span>{/if}
+          {#if firstMeaning.partOfSpeech}<span class="pos">{firstMeaning.partOfSpeech}</span>{/if}
+        </p>
+        <p class="meaning">{firstMeaning.definition}</p>
+        {#if shouldPadWithDictExample && firstMeaning.example}
+          <p class="dict-example"><span class="small-caps">e.g.</span> {firstMeaning.example}</p>
+        {/if}
+      </div>
+    {:else}
+      <p class="definition-missing">
+        <span class="small-caps">no definition found</span>
+      </p>
+    {/if}
+
     <div class="ratings" role="group" aria-label="rate your recall">
       <button type="button" class="rate again" onclick={(e) => { e.stopPropagation(); rate("again"); }}>
         <span class="num">1</span><span class="lbl">didn&rsquo;t know</span>
@@ -138,18 +188,11 @@
         <span class="num">3</span><span class="lbl">knew it</span>
       </button>
     </div>
-    {#if !storageOk}
-      <p class="storage-warning" role="alert">
-        progress can&rsquo;t be saved in this browser &middot; ratings won&rsquo;t persist
-      </p>
-    {/if}
   </div>
 </div>
 </div>
 
 <style>
-  /* Scene — gives the card 3D perspective so rotateY actually rotates instead
-     of flattening into a 2D mirror (which would reveal both faces at once). */
   .card-scene {
     perspective: 1200px;
     width: 100%;
@@ -191,14 +234,25 @@
     color: var(--color-ink);
   }
 
-  /* Front base */
   .face-front {
     background: var(--color-cream);
     border: 1px solid oklch(0.45 0.07 145 / 0.25);
   }
 
+  .cover {
+    position: absolute;
+    top: 0.85rem;
+    left: 0.85rem;
+    width: 40px;
+    height: 56px;
+    object-fit: cover;
+    border-radius: 3px;
+    box-shadow: 0 1px 3px oklch(0.22 0.02 250 / 0.18);
+    opacity: 0.85;
+  }
+
   .illustration {
-    width: 60%;
+    width: 58%;
     aspect-ratio: 1;
     align-self: center;
     margin-top: 0.25rem;
@@ -247,18 +301,15 @@
 
   /* --- Mastery-state treatments --- */
 
-  /* 🌱 Seedling: washed-out, ink-outline feel */
   .card[data-mastery="seedling"] .illustration { filter: grayscale(1) brightness(1.15) opacity(0.55); }
   .card[data-mastery="seedling"] .face-front { background: oklch(0.98 0.01 85); }
 
-  /* 🌸 In bloom: fully-colored, cream page, sage accents */
   .card[data-mastery="bloom"] .face-front {
     background: var(--color-cream);
     box-shadow: 0 1px 0 oklch(0.62 0.08 145 / 0.4), 0 2px 12px oklch(0.22 0.02 250 / 0.06);
     border-color: oklch(0.62 0.08 145 / 0.5);
   }
 
-  /* 🏵️ Pressed: parchment, sepia wash, gold hairline */
   .card[data-mastery="pressed"] .illustration {
     filter: sepia(0.35) saturate(0.75) contrast(0.92);
   }
@@ -274,28 +325,61 @@
   }
   .card[data-mastery="pressed"] .word { color: oklch(0.35 0.05 80); }
 
-  /* --- Back face: sentences + ratings --- */
+  /* --- Back face: sentences + definition + ratings --- */
   .sentences blockquote {
     font-family: var(--font-display);
-    font-size: 1rem;
+    font-size: 0.95rem;
     line-height: 1.4;
     color: var(--color-ink);
-    margin-bottom: 0.5rem;
+    margin-bottom: 0.4rem;
   }
   .sentences blockquote + blockquote {
-    font-size: 0.85rem;
+    font-size: 0.8rem;
     color: oklch(0.35 0.02 250);
     padding-left: 0.6rem;
     border-left: 2px solid oklch(0.82 0.06 145);
   }
-  .definition-placeholder {
-    font-size: 0.75rem;
+
+  .definition {
+    margin-top: 0.6rem;
+    padding: 0.6rem 0.7rem;
+    background: oklch(0.93 0.04 145 / 0.35);
+    border-radius: 0.4rem;
+    border-left: 3px solid oklch(0.62 0.08 145);
+  }
+  .phonetic-pos {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 0.3rem;
+    font-size: 0.7rem;
+  }
+  .phonetic {
     color: var(--color-sepia);
     font-style: italic;
-    margin-top: 0.75rem;
+  }
+  .pos {
+    color: var(--color-sage-700);
+    font-variant: small-caps;
+    letter-spacing: 0.08em;
+  }
+  .meaning {
+    font-family: var(--font-display);
+    font-size: 0.9rem;
+    line-height: 1.35;
+    color: var(--color-ink);
+  }
+  .dict-example {
+    margin-top: 0.4rem;
+    font-size: 0.75rem;
+    color: oklch(0.4 0.02 250);
+    font-style: italic;
+  }
+  .definition-missing {
+    margin-top: 0.6rem;
     padding: 0.5rem;
-    background: oklch(0.93 0.04 145 / 0.4);
-    border-radius: 0.4rem;
+    color: var(--color-sepia);
+    font-size: 0.75rem;
+    text-align: center;
   }
   .small-caps {
     font-variant: small-caps;
@@ -336,12 +420,6 @@
   .rate .lbl {
     font-size: 0.7rem;
     color: var(--color-sepia);
-  }
-  .storage-warning {
-    margin-top: 0.5rem;
-    font-size: 0.7rem;
-    color: oklch(0.52 0.13 20);
-    text-align: center;
   }
 
   @media (prefers-reduced-motion: reduce) {
