@@ -8,7 +8,10 @@ dist/
 .output/
 
 # personal Kindle data — never commit
+# raw: your vocab.db and clippings. processed: the derived JSON of your
+# reading history. Either one makes this repo non-shareable if committed.
 data/raw/
+data/processed/
 vocabulary/
 *.kfx
 *.azw*
