@@ -348,6 +348,12 @@ Two levels deep. Nothing touches the network on a rate event. All side effects a
 - **v2.5 — Cross-device sync:** optional. Replace localStorage with an IndexedDB + a tiny KV service (Cloudflare KV, for instance) behind a passphrase. Only if the user reports friction in practice.
 - **v3 — The album deepens:** theme tagging, cross-book connections ("words I looked up while reading books by women"), timeline view of the reading year.
 - **Physical artifacts:** monthly printable PDF (brainstorm decision) lands with the quotes bed, not words. A "year of pressings" end-of-year print could be a delightful v2+ addition.
+- **Seasonal gardens (captured 2026-04-21):** the user raised the idea of monthly gardens with Midjourney-generated backdrops. Direction confirmed: **continuous garden, seasonal aesthetic views** — not a reset. Implementation sketch (deferred to its own brainstorm after v1 is shipped and in daily use):
+  - One Midjourney backdrop image per month, baked in at build time, served from `public/seasons/YYYY-MM.jpg`.
+  - A gentle monthly palette rotation layered *over* the base sage/rose/cream — not replacing it (e.g., April shifts rose toward cherry-blossom pink; November shifts sage toward amber).
+  - `/seasons/YYYY-MM` archive pages showing words looked up that month, rendered against that month's backdrop.
+  - FSRS state is untouched — one global deck. Seasonal gardens are a *view* and a *memory*, not a learning reset. This preserves vocabulary mastery continuity while adding the ritual and scrapbook-memorial feel.
+  - Open: do we shift palettes automatically via tag-of-month, or does the user curate season transitions? Do past seasons become browsable immediately, or unlock at month-end?
 
 ## Documentation Plan
 
