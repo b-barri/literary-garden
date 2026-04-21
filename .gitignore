@@ -1,0 +1,33 @@
+# dependencies
+node_modules/
+.pnpm-store/
+
+# build output
+dist/
+.astro/
+.output/
+
+# personal Kindle data — never commit
+data/raw/
+vocabulary/
+*.kfx
+*.azw*
+
+# environment
+.env
+.env.*
+!.env.example
+
+# macOS
+.DS_Store
+
+# editor + logs
+.vscode/
+.idea/
+*.log
+excalidraw.log
+
+# test artifacts
+coverage/
+playwright-report/
+test-results/
