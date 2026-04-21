@@ -138,9 +138,26 @@ Gotchas captured to surface in `docs/solutions/` (Phase 4):
 - Render `src/pages/index.astro` as an unstyled `<ul>` of words to validate data flow.
 - **Exit criteria:** `pnpm dev` lists all 166 words with their sentences and source book titles.
 
-#### Phase 2 — Card UI + Scheduler (weekend 2)
+#### Phase 2 — Card UI + Scheduler (weekend 2) ✅ **Complete 2026-04-21**
 
 Goal: the card exists in all three botanical states, flips, accepts ratings, and persists FSRS state.
+
+Shipped in this phase:
+- `ts-fsrs@5.3.2` installed; scheduler wrapper at `src/lib/scheduler.ts` exposes `nextState(card, rating)`, `mastery(card)`, `isDue(card)`. Stability-based pressed threshold at 21 days (matches Anki "mature").
+- Passive-recall rating map implemented: "didn't know" → Again, "blurry" → Hard, "knew it" → Good. Easy is never exposed.
+- `src/lib/progress.ts` is the sole localStorage writer; keyed by `{lang}:{word}`, schema version `v1`, corrupt-data archiving, `garden:storage-failed` custom event for UI fallback.
+- Four hand-drawn botanical SVGs in `src/assets/illustrations/` (daisy/tulip/rose/fern); `src/lib/illustration.ts` assigns them deterministically via djb2-style hash on `{lang}:{word}`.
+- `src/components/WordCard.svelte` (Svelte 5 runes): flip via 3D perspective scene, rating buttons, keyboard shortcuts (Space/Enter flip, 1/2/3 rate).
+- Per-state visual treatments: seedling (desaturated illustration, pale cream), bloom (full color, cream, sage glow, cherry-blossom glyph), pressed (sepia wash, parchment gradient, gold hairline, rosette glyph).
+- End-to-end verified in Chrome: flip → rate Good → state becomes bloom → refresh page → bloom persists. Seeded pressed via localStorage → pressed renders correctly on load.
+
+Gotchas captured for `docs/solutions/` (Phase 4):
+- `<article role="button">` fails Svelte's a11y lint — use `<div role="button">` or a real `<button>`.
+- CSS 3D flip needs `perspective` on the *parent*, not just `transform-style: preserve-3d` on the rotator. Without perspective, rotateY(180deg) collapses into a 2D mirror and `backface-visibility: hidden` has no effect (no 3D context to hide).
+- `z` is deprecated from `astro:content`; use `astro/zod`. `zod` is not a direct dep and importing from it fails.
+- `z.string().datetime()` is deprecated in zod v4; use `z.iso.datetime()`.
+- Adding a new content collection requires clearing `.astro/` cache or Astro sometimes reports `The collection "X" does not exist or is empty` despite valid config.
+- Astro's `client:visible` hydrates on scroll, so 166 islands on one page costs surprisingly little initial JS — the real cost is at scroll time. Phase 3's daily queue shrinks this dramatically.
 
 - Install `ts-fsrs`. Build `src/lib/scheduler.ts`: tiny wrapper around `fsrs()` exposing `nextState(card, rating)` and `mastery(card): 'seedling' | 'bloom' | 'pressed'`.
 - Build `src/lib/progress.ts`: localStorage reader/writer keyed by `{lang}:{word}`, with a schema version (`v1`) and a hand-written migration stub for future versions.
