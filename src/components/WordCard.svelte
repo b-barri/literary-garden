@@ -131,11 +131,12 @@
 >
   <!-- FRONT -->
   <div class="face face-front">
-    {#if coverUrl}
-      <img class="cover" src={coverUrl} alt="" />
-    {/if}
-    <div class="illustration" aria-hidden="true">
-      {@html illustrationSvg}
+    <div class="hero" aria-hidden="true">
+      {#if coverUrl}
+        <img class="cover-hero" src={coverUrl} alt="" />
+      {:else}
+        <div class="illustration">{@html illustrationSvg}</div>
+      {/if}
     </div>
     <h2 class="word" {lang}>{word}</h2>
     {#if stem !== word}
@@ -239,23 +240,32 @@
     border: 1px solid oklch(0.45 0.07 145 / 0.25);
   }
 
-  .cover {
-    position: absolute;
-    top: 0.85rem;
-    left: 0.85rem;
-    width: 40px;
-    height: 56px;
-    object-fit: cover;
-    border-radius: 3px;
-    box-shadow: 0 1px 3px oklch(0.22 0.02 250 / 0.18);
-    opacity: 0.85;
+  /* Hero area: cover (when we have one) or illustration (fallback).
+     The cover is the dominant visual per the brainstorm spec;
+     illustration is the state-as-aesthetic carrier when no cover. */
+  .hero {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 0;
+    margin-top: 0.25rem;
+    margin-bottom: 0.5rem;
   }
-
+  .cover-hero {
+    max-width: 60%;
+    max-height: 100%;
+    width: auto;
+    height: auto;
+    object-fit: contain;
+    border-radius: 4px;
+    box-shadow:
+      0 1px 2px oklch(0.22 0.02 250 / 0.18),
+      0 6px 16px oklch(0.22 0.02 250 / 0.18);
+  }
   .illustration {
     width: 58%;
     aspect-ratio: 1;
-    align-self: center;
-    margin-top: 0.25rem;
   }
   :global(.illustration svg) {
     width: 100%;
@@ -312,6 +322,9 @@
 
   .card[data-mastery="pressed"] .illustration {
     filter: sepia(0.35) saturate(0.75) contrast(0.92);
+  }
+  .card[data-mastery="pressed"] .cover-hero {
+    filter: sepia(0.2) saturate(0.85) contrast(0.95);
   }
   .card[data-mastery="pressed"] .face-front {
     background:

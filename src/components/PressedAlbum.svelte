@@ -29,24 +29,36 @@
   const booksById = new Map(books.map((b) => [b.id, b]));
 
   let pressed: Array<{ word: Word; card: Card; pressedAt: Date }> = $state([]);
+  let inBloom: Array<{ word: Word; card: Card; lastReview: Date; nextDue: Date }> = $state([]);
   let mounted = $state(false);
 
   $effect(() => {
     const cards = loadAll();
-    const list: Array<{ word: Word; card: Card; pressedAt: Date }> = [];
+    const pressedList: typeof pressed = [];
+    const bloomList: typeof inBloom = [];
     for (const w of allWords) {
       const card = cards[w.id];
       if (!card) continue;
-      if (mastery(card) !== "pressed") continue;
-      list.push({
-        word: w,
-        card,
-        pressedAt: card.last_review ?? card.due,
-      });
+      const m = mastery(card);
+      if (m === "pressed") {
+        pressedList.push({
+          word: w,
+          card,
+          pressedAt: card.last_review ?? card.due,
+        });
+      } else if (m === "bloom") {
+        bloomList.push({
+          word: w,
+          card,
+          lastReview: card.last_review ?? new Date(),
+          nextDue: card.due,
+        });
+      }
     }
-    // Newest pressings first
-    list.sort((a, b) => b.pressedAt.getTime() - a.pressedAt.getTime());
-    pressed = list;
+    pressedList.sort((a, b) => b.pressedAt.getTime() - a.pressedAt.getTime());
+    bloomList.sort((a, b) => b.lastReview.getTime() - a.lastReview.getTime());
+    pressed = pressedList;
+    inBloom = bloomList;
     mounted = true;
   });
 
@@ -71,7 +83,7 @@
 
 {#if !mounted}
   <p class="loading" aria-live="polite">opening the album…</p>
-{:else if pressed.length === 0}
+{:else if pressed.length === 0 && inBloom.length === 0}
   <section class="empty">
     <div class="emoji" aria-hidden="true">🍃</div>
     <h2>your first pressings will appear here</h2>
@@ -82,10 +94,37 @@
     </p>
   </section>
 {:else}
-  <p class="count">
-    {pressed.length} pressing{pressed.length === 1 ? "" : "s"}
-    from {grouped.length} book{grouped.length === 1 ? "" : "s"}
-  </p>
+  {#if inBloom.length > 0}
+    <section class="in-bloom">
+      <h2>🌸 in bloom</h2>
+      <p class="section-hint">
+        {inBloom.length} word{inBloom.length === 1 ? "" : "s"} you&rsquo;re actively learning. they&rsquo;ll press after 21 days of proven memory.
+      </p>
+      <ul class="bloom-list">
+        {#each inBloom as item (item.word.id)}
+          <li>
+            <div class="illus" aria-hidden="true">{@html illustrationSvg(assignIllustration(item.word.id))}</div>
+            <div class="meta">
+              <h4 lang={item.word.lang}>{item.word.word}</h4>
+              <p class="stability">
+                stability {Math.round(item.card.stability * 10) / 10}&nbsp;d
+                <span class="sep">·</span>
+                next due {item.nextDue.toLocaleDateString(undefined, { month: "short", day: "numeric" })}
+              </p>
+            </div>
+          </li>
+        {/each}
+      </ul>
+    </section>
+  {/if}
+
+  {#if pressed.length > 0}
+    <h2 class="pressed-heading">🏵️ pressed</h2>
+    <p class="count">
+      {pressed.length} pressing{pressed.length === 1 ? "" : "s"}
+      from {grouped.length} book{grouped.length === 1 ? "" : "s"}
+    </p>
+  {/if}
   <div class="albums">
     {#each grouped as group (group.book?.id ?? "unknown")}
       <section class="album">
@@ -152,6 +191,65 @@
     color: var(--color-sepia);
     font-style: italic;
     font-size: 0.9rem;
+  }
+
+  .in-bloom {
+    margin-bottom: 2.5rem;
+    padding-bottom: 2rem;
+    border-bottom: 1px dashed oklch(0.82 0.06 145 / 0.6);
+  }
+  .in-bloom h2,
+  .pressed-heading {
+    font-family: var(--font-display);
+    font-size: 1.4rem;
+    color: var(--color-sage-900);
+    margin-bottom: 0.35rem;
+    letter-spacing: -0.01em;
+  }
+  .section-hint {
+    font-size: 0.8rem;
+    color: var(--color-sepia);
+    font-style: italic;
+    margin-bottom: 1rem;
+  }
+  .bloom-list {
+    list-style: none;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+    gap: 0.5rem;
+  }
+  .bloom-list li {
+    display: grid;
+    grid-template-columns: 36px 1fr;
+    gap: 0.6rem;
+    align-items: center;
+    padding: 0.5rem 0.75rem;
+    background: var(--color-cream);
+    border: 1px solid oklch(0.62 0.08 145 / 0.4);
+    border-radius: 0.4rem;
+  }
+  .bloom-list .illus {
+    width: 36px;
+    aspect-ratio: 1;
+  }
+  :global(.bloom-list .illus svg) {
+    width: 100%;
+    height: 100%;
+    display: block;
+  }
+  .bloom-list h4 {
+    font-family: var(--font-display);
+    font-size: 1rem;
+    color: var(--color-sage-900);
+  }
+  .bloom-list .stability {
+    font-size: 0.7rem;
+    color: var(--color-sepia);
+    margin-top: 0.1rem;
+  }
+  .bloom-list .sep { margin: 0 0.3rem; }
+  .pressed-heading {
+    margin-top: 0;
   }
 
   .albums {

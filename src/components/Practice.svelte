@@ -53,6 +53,10 @@
   let mounted = $state(false);
   let lastPressedDate: string | null = $state(null);
 
+  // Words that bloomed in this session — shown on the complete screen so the
+  // user can see where their work went before they vanish from the deck.
+  let bloomedThisSession: Array<{ word: Word; rating: PassiveRating }> = $state([]);
+
   $effect(() => {
     queue = buildQueueFromProgress(allWords);
     mounted = true;
@@ -94,10 +98,34 @@
       lastPressedDate = nextCard.due.toISOString();
     }
 
+    // Record for the session-complete screen regardless of state change —
+    // the user wants to see what they just worked on.
+    bloomedThisSession.push({ word: current.word, rating });
+
     // Advance. If "again", the card technically becomes due soon — but within the
     // same session we still move on to keep the ritual bounded.
     currentIndex++;
   }
+
+  // Garden status counters for the complete + empty screens.
+  const gardenStatus = $derived.by(() => {
+    if (!mounted) return { seedlings: allWords.length, bloom: 0, pressed: 0 };
+    let seedlings = 0, bloom = 0, pressed = 0;
+    try {
+      const raw = window.localStorage.getItem("literary-garden:progress:v1");
+      const cards = raw ? (JSON.parse(raw) as { cards?: Record<string, { state: number; stability: number }> }).cards ?? {} : {};
+      for (const w of allWords) {
+        const c = cards[w.id];
+        if (!c) { seedlings++; continue; }
+        if (c.state === 2 && c.stability >= 21) pressed++;
+        else if (c.state === 0) seedlings++;
+        else bloom++;
+      }
+    } catch {
+      return { seedlings: allWords.length, bloom: 0, pressed: 0 };
+    }
+    return { seedlings, bloom, pressed };
+  });
 
   // Word → its book + illustration + definition
   function assetsFor(word: Word) {
@@ -141,16 +169,56 @@
     <p class="summary">
       {sessionRated} card{sessionRated === 1 ? "" : "s"} reviewed
       {#if sessionBloomed > 0}
-        &middot; {sessionBloomed} bloomed
+        &middot; {sessionBloomed} bloomed 🌸
       {/if}
       {#if sessionPressed > 0}
         &middot; {sessionPressed} pressed 🏵️
       {/if}
     </p>
+
+    {#if bloomedThisSession.length > 0}
+      <ul class="tended-list">
+        {#each bloomedThisSession as entry (entry.word.id)}
+          <li>
+            <span class="glyph" aria-hidden="true">
+              {#if entry.rating === "good"}🌸{:else if entry.rating === "hard"}🌿{:else}🌱{/if}
+            </span>
+            <span class="w" lang={entry.word.lang}>{entry.word.word}</span>
+            <span class="r">{entry.rating === "good" ? "knew it" : entry.rating === "hard" ? "blurry" : "didn't know"}</span>
+          </li>
+        {/each}
+      </ul>
+    {/if}
+
+    <div class="garden-status">
+      <div>
+        <span class="num">{gardenStatus.seedlings}</span>
+        <span class="lbl">🌱 seedlings waiting</span>
+      </div>
+      <div>
+        <span class="num">{gardenStatus.bloom}</span>
+        <span class="lbl">🌸 in bloom</span>
+      </div>
+      <div>
+        <span class="num">{gardenStatus.pressed}</span>
+        <span class="lbl">🏵️ pressed</span>
+      </div>
+    </div>
+
+    <p class="rhythm">
+      five new words a day is the garden&rsquo;s rhythm &mdash;
+      {#if gardenStatus.seedlings > 0}
+        {gardenStatus.seedlings} more seedling{gardenStatus.seedlings === 1 ? "" : "s"} will be
+        introduced over the next {Math.ceil(gardenStatus.seedlings / 5)} day{gardenStatus.seedlings <= 5 ? "" : "s"}.
+      {:else}
+        every word has met the light. from here, the garden is about depth, not breadth.
+      {/if}
+    </p>
+
     <p class="small">
-      see you tomorrow.
-      {#if pressedCount > 0}
-        &middot; <a href="/album">album</a>
+      come back tomorrow.
+      {#if gardenStatus.pressed > 0}
+        &middot; <a href="/album">visit the pressed album</a>
       {/if}
     </p>
   </section>
@@ -268,5 +336,74 @@
   .empty-state a {
     color: var(--color-sage-700);
     border-bottom: 1px solid currentColor;
+  }
+
+  .tended-list {
+    max-width: 22rem;
+    margin: 1.25rem auto;
+    list-style: none;
+    text-align: left;
+    background: oklch(0.93 0.04 145 / 0.25);
+    border-left: 3px solid oklch(0.62 0.08 145 / 0.6);
+    border-radius: 0.3rem;
+    padding: 0.75rem 1rem;
+  }
+  .tended-list li {
+    display: grid;
+    grid-template-columns: 1.3rem 1fr auto;
+    gap: 0.5rem;
+    align-items: baseline;
+    padding: 0.2rem 0;
+    font-size: 0.9rem;
+  }
+  .tended-list li + li {
+    border-top: 1px dashed oklch(0.62 0.08 145 / 0.3);
+  }
+  .tended-list .glyph { font-size: 0.9rem; line-height: 1; }
+  .tended-list .w {
+    font-family: var(--font-display);
+    color: var(--color-sage-900);
+  }
+  .tended-list .r {
+    font-size: 0.75rem;
+    color: var(--color-sepia);
+    font-style: italic;
+  }
+
+  .garden-status {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.75rem;
+    max-width: 22rem;
+    margin: 1.25rem auto 0.5rem;
+    padding: 0.75rem;
+    background: var(--color-cream);
+    border: 1px solid oklch(0.82 0.06 145 / 0.5);
+    border-radius: 0.5rem;
+  }
+  .garden-status div {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.2rem;
+  }
+  .garden-status .num {
+    font-family: var(--font-display);
+    font-size: 1.4rem;
+    color: var(--color-sage-900);
+    line-height: 1;
+  }
+  .garden-status .lbl {
+    font-size: 0.65rem;
+    color: var(--color-sepia);
+    text-align: center;
+  }
+  .rhythm {
+    max-width: 26rem;
+    margin: 0.75rem auto 0;
+    font-size: 0.85rem;
+    font-style: italic;
+    color: var(--color-sepia);
+    line-height: 1.5;
   }
 </style>
