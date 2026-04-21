@@ -174,9 +174,23 @@ Gotchas captured for `docs/solutions/` (Phase 4):
 - Build `src/pages/index.astro` as the daily practice surface (wires cards to scheduler in Phase 3).
 - **Exit criteria:** a single card can be flipped, rated, and its state survives page reload; visual treatment differs clearly across the three states.
 
-#### Phase 3 — Daily Practice Flow + Enrichment (weekend 3)
+#### Phase 3 — Daily Practice Flow + Enrichment (weekend 3) ✅ **Complete 2026-04-21**
 
 Goal: the daily ritual works end-to-end. Covers and definitions are present.
+
+Shipped in this phase:
+- Importer expanded with three enrichment passes — `cleanTitle` (strips `(Author)` / `(Z-Library)` from sideloaded titles), `enrichDefinitions` (dictionaryapi.dev, 1/sec polite, incremental cache, stem-preferred lookup — 154/166 hit rate on real data), `enrichCovers` (Open Library search → download `-M` covers to `public/covers/`, 17/22 real covers, rest use illustration fallback).
+- `src/lib/daily.ts` computes today's queue: due reviews (oldest first, capped at 10) + 5 new seedlings (deterministic mulberry32 draw seeded by local YYYY-MM-DD). Pressed cards filtered out. Pure function, testable without a window global.
+- `Practice.svelte` is the new home surface. One card at a time, progress indicator (`1 / 5 · 🌱 new`), session-complete screen counting bloomed/pressed transitions, "garden rests" empty state.
+- `WordCard.svelte` refactored to be controlled — parent owns the FSRS state and gets `onrated(nextCard, rating)`. Front now shows a small book-cover thumbnail when available. Back shows phonetic + POS (small caps) + meaning; the <30-char rule pads thin sentences with a dictionary example.
+- `/album` page lists pressed words grouped by book with real covers and sepia-tinted illustration specimens on parchment cards. "pressed [date]" in small caps. Empty state quotes the flower-between-pages metaphor.
+- Seed script now runs incrementally — an interrupted fetch can resume; `--refresh-definitions` / `--refresh-covers` / `--offline` flags.
+
+Gotchas captured for `docs/solutions/` (Phase 4):
+- `<svelte:window>` tags cannot be nested inside `{#if}` blocks in Svelte 5 — they must be top-level. Put the condition *inside* the handler instead.
+- Prefer a word's `stem` (not inflected form) for dictionary API lookups — "acquiesced" resolves only when you query as "acquiesce." Improved hit rate from ~70% to 93%.
+- Open Library cover downloads can return a ~800-byte gray fallback PNG even with `?default=false` — size-check the response and treat anything < 1500 bytes as "no cover" to avoid gray placeholders slipping through.
+- For sideloaded Kindle books with fabricated ASINs (`1563D9D5F56748F...`), Open Library search by title+author still works surprisingly well — "The Anthropologists" resolved correctly even without a real ASIN.
 
 **Daily selection logic** (resolves SpecFlow §4):
 - **Today anchor:** `Intl.DateTimeFormat().resolvedOptions().timeZone` for the user's local midnight boundary. Stored alongside `lastSessionDate`.
