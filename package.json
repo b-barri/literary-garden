@@ -8,8 +8,8 @@
     "build": "astro build",
     "preview": "astro preview",
     "check": "astro check",
-    "import": "tsx scripts/import.ts",
-    "import:refresh-covers": "tsx scripts/import.ts --refresh-covers"
+    "seed": "tsx scripts/import.ts",
+    "seed:refresh-covers": "tsx scripts/import.ts --refresh-covers"
   },
   "engines": {
     "node": ">=20"

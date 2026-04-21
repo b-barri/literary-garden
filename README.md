@@ -19,7 +19,7 @@ The `data/raw/` directory (where your Kindle files live) is gitignored.
 ```sh
 pnpm install
 cp /Volumes/Kindle/system/vocabulary/vocab.db data/raw/vocab.db   # or drag-drop
-pnpm import
+pnpm seed       # NB: not `pnpm import` — that's a pnpm built-in
 pnpm dev
 ```
 
