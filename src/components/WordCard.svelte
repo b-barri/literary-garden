@@ -67,7 +67,10 @@
   const shouldPadWithDictExample = $derived(
     !!recentLookup && recentLookup.usage.length < 30,
   );
-  const firstMeaning = $derived(definition?.meanings?.[0] ?? null);
+  const allMeanings = $derived(definition?.meanings ?? []);
+  const firstExample = $derived(
+    allMeanings.map((m) => m.example).find((e): e is string => !!e) ?? null,
+  );
 
   function flip() {
     flipped = !flipped;
@@ -155,28 +158,38 @@
 
   <!-- BACK -->
   <div class="face face-back">
-    <div class="sentences" {lang}>
-      {#each lookups as lookup, i (lookup.seenAt + i)}
-        <blockquote>&ldquo;{lookup.usage}&rdquo;</blockquote>
-      {/each}
-    </div>
+    <header class="back-header">
+      <h3 class="back-word" {lang}>{word}</h3>
+      {#if definition?.phonetic}
+        <span class="back-phonetic">{definition.phonetic}</span>
+      {/if}
+    </header>
 
-    {#if firstMeaning}
-      <div class="definition">
-        <p class="phonetic-pos">
-          {#if definition?.phonetic}<span class="phonetic">{definition.phonetic}</span>{/if}
-          {#if firstMeaning.partOfSpeech}<span class="pos">{firstMeaning.partOfSpeech}</span>{/if}
+    <div class="back-body">
+      {#if allMeanings.length > 0}
+        <dl class="definitions">
+          {#each allMeanings as m (m.partOfSpeech + m.definition)}
+            <div class="definition-row">
+              <dt class="pos">{m.partOfSpeech}</dt>
+              <dd class="meaning">{m.definition}</dd>
+            </div>
+          {/each}
+        </dl>
+      {:else}
+        <p class="definition-missing">
+          <span class="small-caps">no definition found</span>
         </p>
-        <p class="meaning">{firstMeaning.definition}</p>
-        {#if shouldPadWithDictExample && firstMeaning.example}
-          <p class="dict-example"><span class="small-caps">e.g.</span> {firstMeaning.example}</p>
+      {/if}
+
+      <div class="sentences" {lang}>
+        {#each lookups as lookup, i (lookup.seenAt + i)}
+          <blockquote>&ldquo;{lookup.usage}&rdquo;</blockquote>
+        {/each}
+        {#if shouldPadWithDictExample && firstExample}
+          <p class="dict-example"><span class="small-caps">also</span> {firstExample}</p>
         {/if}
       </div>
-    {:else}
-      <p class="definition-missing">
-        <span class="small-caps">no definition found</span>
-      </p>
-    {/if}
+    </div>
 
     <div class="ratings" role="group" aria-label="rate your recall">
       <button type="button" class="rate again" onclick={(e) => { e.stopPropagation(); rate("again"); }}>
@@ -338,66 +351,103 @@
   }
   .card[data-mastery="pressed"] .word { color: oklch(0.35 0.05 80); }
 
-  /* --- Back face: sentences + definition + ratings --- */
-  .sentences blockquote {
-    font-family: var(--font-display);
-    font-size: 0.95rem;
-    line-height: 1.4;
-    color: var(--color-ink);
-    margin-bottom: 0.4rem;
-  }
-  .sentences blockquote + blockquote {
-    font-size: 0.8rem;
-    color: oklch(0.35 0.02 250);
-    padding-left: 0.6rem;
-    border-left: 2px solid oklch(0.82 0.06 145);
-  }
-
-  .definition {
-    margin-top: 0.6rem;
-    padding: 0.6rem 0.7rem;
-    background: oklch(0.93 0.04 145 / 0.35);
-    border-radius: 0.4rem;
-    border-left: 3px solid oklch(0.62 0.08 145);
-  }
-  .phonetic-pos {
+  /* --- Back face: header (word + phonetic) · body (meanings + sentences) · ratings --- */
+  .back-header {
     display: flex;
-    gap: 0.5rem;
-    margin-bottom: 0.3rem;
-    font-size: 0.7rem;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid oklch(0.82 0.06 145 / 0.5);
+    margin-bottom: 0.6rem;
   }
-  .phonetic {
+  .back-word {
+    font-family: var(--font-display);
+    font-size: 1.6rem;
+    color: var(--color-sage-900);
+    letter-spacing: -0.01em;
+    line-height: 1;
+  }
+  .back-phonetic {
+    font-family: var(--font-body);
+    font-size: 0.8rem;
     color: var(--color-sepia);
     font-style: italic;
+  }
+
+  .back-body {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    padding-right: 0.25rem;
+  }
+  /* Subtle scrollbar so the user doesn't feel text is cut off */
+  .back-body::-webkit-scrollbar { width: 4px; }
+  .back-body::-webkit-scrollbar-thumb { background: oklch(0.82 0.06 145 / 0.5); border-radius: 2px; }
+
+  .definitions {
+    display: flex;
+    flex-direction: column;
+    gap: 0.45rem;
+  }
+  .definition-row {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 0.6rem;
+    align-items: baseline;
+    padding: 0.5rem 0.6rem;
+    background: oklch(0.93 0.04 145 / 0.35);
+    border-radius: 0.35rem;
+    border-left: 3px solid oklch(0.62 0.08 145);
   }
   .pos {
     color: var(--color-sage-700);
     font-variant: small-caps;
     letter-spacing: 0.08em;
+    font-size: 0.7rem;
+    white-space: nowrap;
+    align-self: start;
+    padding-top: 0.1rem;
   }
   .meaning {
     font-family: var(--font-display);
     font-size: 0.9rem;
-    line-height: 1.35;
+    line-height: 1.4;
     color: var(--color-ink);
   }
+
+  .sentences {
+    margin-top: 0.75rem;
+  }
+  .sentences blockquote {
+    font-family: var(--font-display);
+    font-size: 0.85rem;
+    line-height: 1.45;
+    color: oklch(0.35 0.02 250);
+    padding-left: 0.65rem;
+    border-left: 2px solid oklch(0.72 0.08 70 / 0.5);
+    margin-bottom: 0.4rem;
+    font-style: italic;
+  }
   .dict-example {
-    margin-top: 0.4rem;
-    font-size: 0.75rem;
+    margin-top: 0.3rem;
+    padding-left: 0.65rem;
+    border-left: 2px dashed oklch(0.72 0.08 70 / 0.5);
+    font-size: 0.78rem;
     color: oklch(0.4 0.02 250);
     font-style: italic;
   }
   .definition-missing {
-    margin-top: 0.6rem;
-    padding: 0.5rem;
+    padding: 0.75rem;
     color: var(--color-sepia);
-    font-size: 0.75rem;
+    font-size: 0.8rem;
     text-align: center;
   }
   .small-caps {
     font-variant: small-caps;
     letter-spacing: 0.08em;
     font-style: normal;
+    color: var(--color-sage-700);
   }
 
   .ratings {
