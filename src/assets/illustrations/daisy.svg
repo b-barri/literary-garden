@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" fill="none" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+  <!-- stem + leaves -->
+  <path d="M60 105 Q62 85 60 60" stroke="oklch(0.45 0.07 145)" stroke-width="2" />
+  <path d="M60 88 Q48 82 42 88" stroke="oklch(0.45 0.07 145)" stroke-width="2" fill="oklch(0.82 0.06 145)" />
+  <path d="M60 78 Q72 72 78 78" stroke="oklch(0.45 0.07 145)" stroke-width="2" fill="oklch(0.82 0.06 145)" />
+  <!-- petals: 8 of them around the center -->
+  <g stroke="oklch(0.52 0.13 20)" stroke-width="1.75" fill="oklch(0.94 0.03 20)">
+    <ellipse cx="60" cy="32" rx="7" ry="13" />
+    <ellipse cx="60" cy="32" rx="7" ry="13" transform="rotate(45 60 50)" />
+    <ellipse cx="60" cy="32" rx="7" ry="13" transform="rotate(90 60 50)" />
+    <ellipse cx="60" cy="32" rx="7" ry="13" transform="rotate(135 60 50)" />
+    <ellipse cx="60" cy="32" rx="7" ry="13" transform="rotate(180 60 50)" />
+    <ellipse cx="60" cy="32" rx="7" ry="13" transform="rotate(225 60 50)" />
+    <ellipse cx="60" cy="32" rx="7" ry="13" transform="rotate(270 60 50)" />
+    <ellipse cx="60" cy="32" rx="7" ry="13" transform="rotate(315 60 50)" />
+  </g>
+  <!-- pistil -->
+  <circle cx="60" cy="50" r="7" fill="oklch(0.72 0.08 70)" stroke="oklch(0.45 0.07 145)" stroke-width="1.5" />
+</svg>

@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" fill="none" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+  <!-- frond spine -->
+  <path d="M60 108 Q56 70 60 22" stroke="oklch(0.45 0.07 145)" stroke-width="2" />
+  <!-- leaflets — pairs along the spine -->
+  <g stroke="oklch(0.62 0.08 145)" stroke-width="1.75" fill="oklch(0.82 0.06 145)">
+    <path d="M60 92 Q50 86 42 92 Q52 94 60 94 Z" />
+    <path d="M60 92 Q70 86 78 92 Q68 94 60 94 Z" />
+    <path d="M60 78 Q48 70 38 76 Q52 82 60 82 Z" />
+    <path d="M60 78 Q72 70 82 76 Q68 82 60 82 Z" />
+    <path d="M60 62 Q46 52 36 58 Q52 66 60 66 Z" />
+    <path d="M60 62 Q74 52 84 58 Q68 66 60 66 Z" />
+    <path d="M60 46 Q48 38 40 44 Q54 50 60 50 Z" />
+    <path d="M60 46 Q72 38 80 44 Q66 50 60 50 Z" />
+    <path d="M60 32 Q52 26 46 32 Q54 36 60 36 Z" />
+    <path d="M60 32 Q68 26 74 32 Q66 36 60 36 Z" />
+  </g>
+  <!-- fiddle-head at top -->
+  <path d="M60 22 Q56 16 60 14 Q64 16 62 22" stroke="oklch(0.45 0.07 145)" stroke-width="2" fill="oklch(0.62 0.08 145)" />
+</svg>

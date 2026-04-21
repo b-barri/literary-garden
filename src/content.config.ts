@@ -5,7 +5,7 @@ import { z } from "astro/zod";
 const lookup = z.object({
   usage: z.string(),
   bookId: z.string(),
-  seenAt: z.string().datetime(),
+  seenAt: z.iso.datetime(),
   pos: z.string().nullable(),
 });
 
@@ -16,8 +16,8 @@ const words = defineCollection({
     word: z.string(),
     stem: z.string(),
     lang: z.string(),
-    firstSeenAt: z.string().datetime(),
-    lastSeenAt: z.string().datetime(),
+    firstSeenAt: z.iso.datetime(),
+    lastSeenAt: z.iso.datetime(),
     primaryBookId: z.string(),
     lookups: z.array(lookup).nonempty(),
   }),

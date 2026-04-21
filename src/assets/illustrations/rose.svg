@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" fill="none" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+  <!-- stem -->
+  <path d="M60 105 Q58 85 60 62" stroke="oklch(0.45 0.07 145)" stroke-width="2" />
+  <!-- leaves -->
+  <path d="M60 82 Q42 78 38 92 Q50 86 60 86" stroke="oklch(0.45 0.07 145)" stroke-width="2" fill="oklch(0.82 0.06 145)" />
+  <path d="M60 72 Q78 68 82 82 Q70 76 60 76" stroke="oklch(0.45 0.07 145)" stroke-width="2" fill="oklch(0.82 0.06 145)" />
+  <!-- rose head — concentric curved petals -->
+  <g stroke="oklch(0.52 0.13 20)" stroke-width="1.75">
+    <circle cx="60" cy="42" r="22" fill="oklch(0.85 0.06 20)" />
+    <path d="M48 42 Q50 30 60 28 Q70 30 72 42 Q70 54 60 56 Q50 54 48 42 Z" fill="oklch(0.94 0.03 20)" />
+    <path d="M54 42 Q56 34 60 34 Q64 34 66 42 Q64 50 60 50 Q56 50 54 42 Z" fill="oklch(0.68 0.13 20)" />
+    <path d="M58 40 Q60 36 62 40 Q62 46 60 46 Q58 46 58 40 Z" fill="oklch(0.52 0.13 20)" />
+  </g>
+</svg>
