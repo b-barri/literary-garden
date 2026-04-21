@@ -1,0 +1,58 @@
+@import "tailwindcss";
+
+@theme {
+  /* Sage — the garden's green, from herb bed to canopy */
+  --color-sage-50:  oklch(0.97 0.02 145);
+  --color-sage-100: oklch(0.93 0.04 145);
+  --color-sage-300: oklch(0.82 0.06 145);
+  --color-sage-500: oklch(0.62 0.08 145);
+  --color-sage-700: oklch(0.45 0.07 145);
+  --color-sage-900: oklch(0.28 0.05 145);
+
+  /* Rose — petals, pressings, underlines */
+  --color-rose-100: oklch(0.94 0.03 20);
+  --color-rose-300: oklch(0.85 0.06 20);
+  --color-rose-500: oklch(0.68 0.13 20);
+  --color-rose-700: oklch(0.52 0.13 20);
+
+  /* Parchment & ink */
+  --color-cream:    oklch(0.97 0.02 85);
+  --color-parchment: oklch(0.92 0.03 80);
+  --color-sepia:    oklch(0.72 0.08 70);
+  --color-ink:      oklch(0.22 0.02 250);
+
+  /* Type */
+  --font-display: "Lora", Garamond, "Cormorant Garamond", serif;
+  --font-body:    "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+
+  /* Rhythm */
+  --radius-card: 1rem;
+  --shadow-pressed: 0 1px 0 oklch(0.72 0.08 70 / 0.3), 0 2px 8px oklch(0.22 0.02 250 / 0.08);
+}
+
+/* Baseline — cream paper, ink text, serif display */
+html {
+  background: var(--color-cream);
+  color: var(--color-ink);
+  font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+body {
+  min-height: 100dvh;
+}
+
+h1, h2, h3, .font-display {
+  font-family: var(--font-display);
+  font-weight: 500;
+  letter-spacing: -0.01em;
+}
+
+/* Respect user motion preference from day one */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
