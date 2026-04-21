@@ -1,15 +1,64 @@
 ---
 import BaseLayout from "~/layouts/BaseLayout.astro";
+import { getCollection } from "astro:content";
+
+const words = await getCollection("words");
+const books = await getCollection("books");
+
+const booksById = new Map(books.map((b) => [b.data.id, b.data]));
+
+// Phase 1: show every word. Phase 3 will replace this with a daily-practice queue.
+const sorted = [...words].sort((a, b) => a.data.word.localeCompare(b.data.word));
 ---
 
 <BaseLayout>
-  <header class="mb-8">
-    <h1 class="text-4xl text-sage-900">Literary Garden</h1>
-    <p class="mt-2 text-sepia italic">a seedling</p>
-  </header>
-  <section>
-    <p class="text-ink/70">
-      Your words bed will grow here. Run <code class="font-mono text-sm bg-sage-50 px-1.5 py-0.5 rounded">pnpm&nbsp;seed</code> to plant it.
+  <header class="mb-10">
+    <p class="text-sm uppercase tracking-[0.2em] text-sage-700">a literary garden</p>
+    <h1 class="mt-1 text-5xl text-sage-900">words bed</h1>
+    <p class="mt-3 text-sepia italic">
+      {sorted.length} seedlings &middot; {books.length} books &middot; phase 1 preview
     </p>
-  </section>
+  </header>
+
+  <ol class="space-y-8">
+    {
+      sorted.map(({ data: word }) => {
+        const primary = booksById.get(word.primaryBookId);
+        const recentLookup = word.lookups[0];
+        return (
+          <li class="border-l-2 border-sage-300 pl-5">
+            <h2
+              lang={word.lang}
+              class="font-display text-3xl text-sage-900"
+            >
+              {word.word}
+              {word.stem !== word.word && (
+                <span class="ml-2 text-base text-sepia italic align-middle">
+                  / {word.stem}
+                </span>
+              )}
+            </h2>
+            <blockquote class="mt-2 text-ink/80" lang={word.lang}>
+              &ldquo;{recentLookup.usage}&rdquo;
+            </blockquote>
+            {primary && (
+              <p class="mt-1 text-sm text-sepia italic">
+                &mdash; {primary.title.replace(/\s*\(Z-Library\)\s*$/i, "")}
+                {primary.authors && `, ${primary.authors}`}
+              </p>
+            )}
+            {word.lookups.length > 1 && (
+              <p class="mt-1 text-xs text-sage-700">
+                seen in {word.lookups.length} contexts
+              </p>
+            )}
+          </li>
+        );
+      })
+    }
+  </ol>
+
+  <footer class="mt-16 pt-8 border-t border-sage-100 text-xs text-sage-700 text-center">
+    <p>phase 1 of 4 &middot; nothing here persists yet &middot; the garden is still a seedling</p>
+  </footer>
 </BaseLayout>
