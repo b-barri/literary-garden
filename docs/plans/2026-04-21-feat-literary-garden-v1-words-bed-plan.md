@@ -91,9 +91,23 @@ The user drops `vocab.db` into `data/raw/`, runs `pnpm import`, and `pnpm dev` o
 
 ### Implementation Phases
 
-#### Phase 1 — Foundation (weekend 1)
+#### Phase 1 — Foundation (weekend 1) ✅ **Complete 2026-04-21**
 
 Goal: the project exists, the palette exists, the importer reads vocab.db end-to-end, and a plain unstyled list of words renders.
+
+Shipped in this phase:
+- Astro 6.1.8 scaffold (plan said v5; v6 is current; same content-collections API).
+- Svelte 5.55.4 integration installed (no islands rendered yet; arrives in Phase 2).
+- Tailwind v4 via `@tailwindcss/vite` with full botanical palette in OKLCH.
+- better-sqlite3 importer reads real `vocab.db` → 166 words, 22 books, 173 lookups.
+- Astro content collections (`words`, `books`) typed via `astro/zod` (note: `z` re-export from `astro:content` is deprecated in Astro 6).
+- Privacy baseline: `data/raw/` + `data/processed/` both gitignored; `noindex, nofollow` meta on the base layout.
+- Garden renders at `/` as a styled list — alphabetical, with word, stem, most-recent sentence, and book attribution. Exceeded "unstyled" exit criterion because the palette + layout made a bare list already beautiful.
+
+Gotchas captured to surface in `docs/solutions/` (Phase 4):
+- `pnpm import` is a built-in pnpm subcommand; naming an npm script `import` makes `pnpm import` delete `pnpm-lock.yaml`. Renamed the script to `seed` and updated the README.
+- `.astro` cache needed clearing after adding a new collection; otherwise the dev server reports `The collection "words" does not exist or is empty` despite valid config.
+- Sideloaded Kindle books have the author duplicated in the title (e.g., "The Anthropologists (Aysegül Savas)") and often a "(Z-Library)" suffix. Phase 1 strips the suffix; Phase 3 will also strip the author parens.
 
 - Initialize repo: `git init`, `.gitignore` (data/raw/, .DS_Store, node_modules, dist, .astro).
 - Scaffold Astro v5 with pnpm, Svelte 5 integration, Tailwind v4 integration (`npx astro add svelte tailwind`).
