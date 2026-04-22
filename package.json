@@ -15,7 +15,8 @@
     "seed:refresh": "tsx scripts/import.ts --refresh",
     "seed:offline": "tsx scripts/import.ts --offline",
     "reseed": "tsx scripts/import.ts && rm -rf .astro && echo '✓ reseeded. restart pnpm dev to pick up changes.'",
-    "prepare": "simple-git-hooks"
+    "prepare": "simple-git-hooks",
+    "deploy": "pnpm seed && pnpm build && vercel build --prod && vercel deploy --prebuilt --prod"
   },
   "simple-git-hooks": {
     "pre-commit": "sh ./scripts/block-private.sh"
@@ -36,7 +37,8 @@
     "svelte": "^5.55.4",
     "tailwindcss": "^4.2.3",
     "tsx": "^4.21.0",
-    "typescript": "^6.0.3"
+    "typescript": "^6.0.3",
+    "vercel": "^52.0.0"
   },
   "pnpm": {
     "onlyBuiltDependencies": [

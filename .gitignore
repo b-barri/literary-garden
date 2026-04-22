@@ -34,6 +34,10 @@ src/site.config.ts
 public/bhavya-stamp.png
 public/*-stamp.png
 
+# Vercel project metadata — created by `vercel link`. Contains deployment
+# IDs + project org, not secrets or data, but no reason to commit.
+.vercel/
+
 # environment
 .env
 .env.*

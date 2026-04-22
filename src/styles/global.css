@@ -78,6 +78,13 @@ h1, h2, h3, .font-display {
   letter-spacing: -0.01em;
 }
 
+/* iOS Safari tap-highlight — suppress the default opaque gray rectangle
+   that flashes for 100ms on every tap. A barely-there sage tint matches
+   the palette and still signals "I heard that tap." Applies globally. */
+a, button, [role="button"], input, select, textarea, label {
+  -webkit-tap-highlight-color: rgba(52, 71, 47, 0.10);
+}
+
 /* Respect user motion preference from day one */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
