@@ -18,15 +18,20 @@
  */
 
 import Database from "better-sqlite3";
-import { mkdirSync, writeFileSync, existsSync, readFileSync } from "node:fs";
+import { mkdirSync, writeFileSync, existsSync, readFileSync, renameSync, utimesSync } from "node:fs";
 import { resolve } from "node:path";
+import sharp from "sharp";
+import { parseClippings } from "./clippings.js";
+import type { Book, Quote } from "../src/lib/types.js";
 
 const ROOT = resolve(import.meta.dirname, "..");
 const DB_PATH = resolve(ROOT, "data/raw/vocab.db");
+const CLIPPINGS_PATH = resolve(ROOT, "data/raw/My Clippings.txt");
 const OUT_DIR = resolve(ROOT, "data/processed");
 const COVER_DIR = resolve(ROOT, "public/covers");
 const DEFINITIONS_PATH = resolve(OUT_DIR, "definitions.json");
 const COVER_MANIFEST_PATH = resolve(OUT_DIR, "covers-manifest.json");
+const QUOTES_PATH = resolve(OUT_DIR, "quotes.json");
 
 const args = new Set(process.argv.slice(2));
 const REFRESH_DEFINITIONS = args.has("--refresh-definitions") || args.has("--refresh");
@@ -69,15 +74,9 @@ interface Word {
   lookups: Lookup[];
 }
 
-interface Book {
-  id: string;
-  asin: string | null;
-  title: string;
-  authors: string;
-  lang: string;
-  wordCount: number;
-  coverUrl: string | null;
-}
+// `Book` type is imported from ../src/lib/types.js (z.infer from the shared
+// Zod schema) so the build-time shape matches the content-collection schema
+// exactly. See plan insight A-1.
 
 interface DefinitionMeaning {
   partOfSpeech: string;
@@ -97,11 +96,25 @@ interface DefinitionCache {
 
 interface CoverManifest {
   [bookId: string]: {
-    source: "openlibrary" | "placeholder";
+    source: "openlibrary" | "googlebooks" | "manual" | "placeholder";
     olCoverId?: number;
+    // Hex string (#rrggbb) of the cover's dominant colour. Sharp's
+    // histogram-based dominant extraction; omitted for placeholders.
+    spineColor?: string;
     fetchedAt: string;
   };
 }
+
+// User-editable manual-cover overrides. Keyed by bookId → direct image URL.
+// Read once per seed run; takes precedence over both OL and GB. Useful for
+// sideloaded books the public APIs don't index (or index under a different
+// normalisation) — the user can paste any direct image URL and the importer
+// will download, cache, and extract a spine colour like any other cover.
+// File is optional; missing or malformed file = no overrides, no error.
+interface CoverOverrides {
+  [bookId: string]: string;
+}
+const COVER_OVERRIDES_PATH = resolve(ROOT, "data/raw/cover-overrides.json");
 
 // ---------- Helpers ----------
 
@@ -118,8 +131,15 @@ function readJson<T>(path: string, fallback: T): T {
   }
 }
 
+// Atomic JSON write: writes to `${path}.tmp` then renames. `rename(2)` is
+// atomic on same-fs POSIX (macOS/Linux), so a half-written file never shows
+// up to downstream readers — important because Astro dev HMR watches these
+// paths and otherwise can pick up a partial parse during `pnpm seed`.
+// See plan insight D-7.
 function writeJson(path: string, data: unknown): void {
-  writeFileSync(path, JSON.stringify(data, null, 2) + "\n");
+  const tmp = `${path}.tmp`;
+  writeFileSync(tmp, JSON.stringify(data, null, 2) + "\n");
+  renameSync(tmp, path);
 }
 
 async function sleep(ms: number): Promise<void> {
@@ -266,6 +286,113 @@ async function resolveOpenLibraryCover(
   }
 }
 
+// Build a clean search query by stripping library-suffix parens and other
+// sideloaded noise. "The Loneliness of Sonia (Kiran Desai) (z-library.sk)"
+// → "The Loneliness of Sonia". Preserves legitimate parens (volumes etc.)
+// by bailing when contents look numeric.
+function searchableTitle(raw: string): string {
+  return raw
+    .replace(/\s*\(([^)]*)\)\s*/g, (m, inner) => {
+      if (/^[ivxlcdm\d\s.,:-]+$/i.test(inner)) return ` (${inner}) `;
+      return " ";
+    })
+    .replace(/,\s*(z-library|1lib|bookslib|libgen|epub|retail|kindle edition)[^,]*/gi, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+// Google Books API — free, no key. Used as a second-chance lookup when Open
+// Library misses; indexes a superset of recent titles + most sideloaded books.
+// Returns a cover URL or null. Retries on 503 (backendFailed) with exponential
+// backoff — Google's books backend is intermittently slow.
+async function resolveGoogleBooksCover(
+  title: string,
+  authors: string,
+): Promise<string | null> {
+  const cleanTitle = searchableTitle(title);
+  const firstAuthor = authors.includes(",")
+    ? authors.split(",").reverse().map((s) => s.trim()).join(" ")
+    : authors;
+  // No quoted phrase — Google's phrase matching is too strict for
+  // long compound titles with subtitles. Bare `intitle:` keywords OR
+  // the author give good recall.
+  const qParts = [`intitle:${cleanTitle}`];
+  if (firstAuthor) qParts.push(`inauthor:${firstAuthor}`);
+  const q = encodeURIComponent(qParts.join(" "));
+  const url = `https://www.googleapis.com/books/v1/volumes?q=${q}&maxResults=3&printType=books`;
+
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      const res = await fetch(url);
+      if (res.status === 503 && attempt < 2) {
+        await sleep(2000 * (attempt + 1));
+        continue;
+      }
+      if (!res.ok) return null;
+      const data = (await res.json()) as {
+        items?: Array<{
+          volumeInfo?: {
+            imageLinks?: { thumbnail?: string; smallThumbnail?: string };
+          };
+        }>;
+      };
+      for (const item of data.items ?? []) {
+        const links = item.volumeInfo?.imageLinks;
+        const raw = links?.thumbnail ?? links?.smallThumbnail;
+        if (!raw) continue;
+        // Upgrade: https, zoom=2 (≈256px wide), strip curl-edge flourish.
+        return raw
+          .replace(/^http:/, "https:")
+          .replace(/&edge=curl/g, "")
+          .replace(/zoom=\d+/, "zoom=2");
+      }
+      return null;
+    } catch {
+      if (attempt < 2) await sleep(2000 * (attempt + 1));
+    }
+  }
+  return null;
+}
+
+async function downloadCoverFromUrl(url: string, destPath: string): Promise<boolean> {
+  try {
+    // Many CDNs (notably Amazon's m.media-amazon.com and Google's gstatic)
+    // block requests without a browser-shaped User-Agent. A minimal UA
+    // string satisfies their filter without pretending to be a real
+    // browser session.
+    const res = await fetch(url, {
+      headers: { "User-Agent": "LiteraryGarden/0.1 (personal, non-commercial)" },
+    });
+    if (!res.ok) return false;
+    const buf = Buffer.from(await res.arrayBuffer());
+    if (buf.length < 1500) return false;
+    // Re-encode through sharp as JPEG. Third-party CDNs serve arbitrary
+    // formats (WebP, PNG, AVIF) regardless of the URL's apparent extension.
+    // Always writing a true JPEG ensures file bytes match the .jpg suffix
+    // so strict content-type checks and image-format sniffers agree.
+    const jpeg = await sharp(buf).jpeg({ quality: 86 }).toBuffer();
+    writeFileSync(destPath, jpeg);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+// Load the user's manual cover-URL overrides. Safe on missing/malformed
+// file — returns an empty map.
+function readCoverOverrides(): CoverOverrides {
+  if (!existsSync(COVER_OVERRIDES_PATH)) return {};
+  try {
+    const parsed = JSON.parse(readFileSync(COVER_OVERRIDES_PATH, "utf-8"));
+    if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+      return parsed as CoverOverrides;
+    }
+    return {};
+  } catch {
+    return {};
+  }
+}
+
 async function downloadCover(coverId: number, destPath: string): Promise<boolean> {
   const url = `https://covers.openlibrary.org/b/id/${coverId}-M.jpg?default=false`;
   try {
@@ -281,6 +408,71 @@ async function downloadCover(coverId: number, destPath: string): Promise<boolean
   }
 }
 
+// Pulls a chromatic spine colour from a cover JPG. Sharp's built-in
+// `stats().dominant` tends to latch onto paper-white margins or near-black
+// ink on covers with heavy borders (we saw 5/17 covers return #f8f8f8 /
+// #382818 / etc. — all monochrome). Instead:
+//   1. Resize to 32×32 (1024 pixels — fast, denoised).
+//   2. Per pixel, compute (L, S). Skip near-white, near-black, near-grey.
+//   3. Quantise remaining chromatic pixels into coarse RGB buckets (÷32).
+//   4. Return the most-populated bucket's centroid.
+// Falls back to sharp's plain dominant only if no chromatic pixel survives.
+// Returns "#rrggbb" or null on failure.
+async function extractDominantColor(path: string): Promise<string | null> {
+  try {
+    const img = sharp(path).resize(32, 32, { fit: "cover" });
+    const { data, info } = await img.raw().toBuffer({ resolveWithObject: true });
+    const channels = info.channels;
+    type Bucket = { r: number; g: number; b: number; n: number };
+    const buckets = new Map<string, Bucket>();
+
+    for (let i = 0; i < data.length; i += channels) {
+      const r = data[i];
+      const g = data[i + 1];
+      const b = data[i + 2];
+      // Perceptual luminance (Rec. 709). Skip extremes.
+      const L = (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255;
+      if (L > 0.88 || L < 0.1) continue;
+      // Saturation = (max-min)/max. Skip near-greys.
+      const mx = Math.max(r, g, b), mn = Math.min(r, g, b);
+      if (mx === 0) continue;
+      const S = (mx - mn) / mx;
+      if (S < 0.18) continue;
+      // Coarse quantise to 8 bins per channel → 512 possible buckets.
+      const key = `${r >> 5}-${g >> 5}-${b >> 5}`;
+      const existing = buckets.get(key);
+      if (existing) {
+        existing.r += r; existing.g += g; existing.b += b; existing.n += 1;
+      } else {
+        buckets.set(key, { r, g, b, n: 1 });
+      }
+    }
+
+    const toHex = (n: number) => Math.round(n).toString(16).padStart(2, "0");
+
+    if (buckets.size === 0) {
+      // No chromatic pixels — fall back to sharp's plain dominant.
+      const { dominant } = await sharp(path).resize(32, 32, { fit: "cover" }).stats();
+      if (!dominant) return null;
+      return `#${toHex(dominant.r)}${toHex(dominant.g)}${toHex(dominant.b)}`;
+    }
+
+    // Pick the heaviest bucket; centroid gives a smoother colour than
+    // the modal raw pixel.
+    let winner: Bucket | null = null;
+    for (const b of buckets.values()) {
+      if (!winner || b.n > winner.n) winner = b;
+    }
+    if (!winner) return null;
+    const cr = winner.r / winner.n;
+    const cg = winner.g / winner.n;
+    const cb = winner.b / winner.n;
+    return `#${toHex(cr)}${toHex(cg)}${toHex(cb)}`;
+  } catch {
+    return null;
+  }
+}
+
 async function enrichCovers(books: Book[]): Promise<CoverManifest> {
   mkdirSync(COVER_DIR, { recursive: true });
 
@@ -290,58 +482,137 @@ async function enrichCovers(books: Book[]): Promise<CoverManifest> {
 
   if (SKIP_NETWORK) {
     console.log(`  ↷ skipping cover fetch (--offline) · ${Object.keys(manifest).length} cached`);
-    // Still set coverUrl from existing manifest entries.
+    // Still set coverUrl + spineColor from existing manifest entries.
     for (const book of books) {
       const entry = manifest[book.id];
-      book.coverUrl = entry ? `/covers/${book.id}.${entry.source === "placeholder" ? "svg" : "jpg"}` : null;
+      if (!entry || entry.source === "placeholder") {
+        book.coverUrl = null;
+        book.spineColor = null;
+      } else {
+        book.coverUrl = `/covers/${book.id}.jpg`;
+        book.spineColor = entry.spineColor ?? null;
+      }
     }
     return manifest;
   }
 
-  const toProcess = books.filter((b) => !(b.id in manifest));
+  // Retry placeholders each run so newly-indexed books pick up a cover.
+  // Keeps successful covers (openlibrary/googlebooks/manual) untouched.
+  for (const [k, v] of Object.entries(manifest)) {
+    if (v.source === "placeholder") delete manifest[k];
+  }
+
+  // Manual-override list — applied ahead of OL + GB. Any override for a
+  // bookId that already has a manifest entry also wins (so the user can
+  // swap a so-so OL cover for a preferred one by editing the overrides
+  // file and removing the manifest entry, or deleting the JPG).
+  const overrides = readCoverOverrides();
+
+  const toProcess = books.filter(
+    (b) => !(b.id in manifest) || (b.id in overrides && manifest[b.id]?.source !== "manual"),
+  );
   if (toProcess.length === 0) {
     console.log(`  ✓ covers already cached for all ${books.length} books`);
   } else {
-    console.log(`  → resolving ${toProcess.length} book covers (politely)…`);
+    const manualCount = toProcess.filter((b) => b.id in overrides).length;
+    console.log(
+      `  → resolving ${toProcess.length} book covers` +
+        (manualCount ? ` (${manualCount} from manual overrides)` : ""),
+    );
   }
 
   for (const book of toProcess) {
     const destJpg = resolve(COVER_DIR, `${book.id}.jpg`);
-    const coverId = await resolveOpenLibraryCover(book.title, book.authors);
-    if (coverId) {
-      const ok = await downloadCover(coverId, destJpg);
-      if (ok) {
-        manifest[book.id] = {
-          source: "openlibrary",
-          olCoverId: coverId,
-          fetchedAt: new Date().toISOString(),
-        };
-        console.log(`     ✓ ${book.title.slice(0, 40)}`);
-      } else {
-        manifest[book.id] = { source: "placeholder", fetchedAt: new Date().toISOString() };
-        console.log(`     ○ ${book.title.slice(0, 40)} (download failed)`);
-      }
-    } else {
-      manifest[book.id] = { source: "placeholder", fetchedAt: new Date().toISOString() };
-      console.log(`     ○ ${book.title.slice(0, 40)} (no OL match)`);
+
+    // Layer 0: manual override — highest priority.
+    let resolvedSource: "openlibrary" | "googlebooks" | "manual" | null = null;
+    let olIdMatched: number | null = null;
+    const overrideUrl = overrides[book.id];
+    if (overrideUrl) {
+      const ok = await downloadCoverFromUrl(overrideUrl, destJpg);
+      if (ok) resolvedSource = "manual";
     }
-    await sleep(1000); // be polite to OL
+
+    // Layer 1: Open Library.
+    if (!resolvedSource) {
+      const coverId = await resolveOpenLibraryCover(book.title, book.authors);
+      if (coverId) {
+        const ok = await downloadCover(coverId, destJpg);
+        if (ok) {
+          resolvedSource = "openlibrary";
+          olIdMatched = coverId;
+        }
+      }
+    }
+
+    // Layer 2: Google Books (fallback).
+    if (!resolvedSource) {
+      const gbUrl = await resolveGoogleBooksCover(book.title, book.authors);
+      if (gbUrl) {
+        const ok = await downloadCoverFromUrl(gbUrl, destJpg);
+        if (ok) resolvedSource = "googlebooks";
+      }
+    }
+
+    if (resolvedSource) {
+      const spineColor = await extractDominantColor(destJpg);
+      manifest[book.id] = {
+        source: resolvedSource,
+        olCoverId: olIdMatched ?? undefined,
+        spineColor: spineColor ?? undefined,
+        fetchedAt: new Date().toISOString(),
+      };
+      const tag =
+        resolvedSource === "googlebooks" ? "[gb]"
+        : resolvedSource === "manual" ? "[manual]"
+        : "[ol]";
+      console.log(`     ✓ ${tag} ${book.title.slice(0, 40)}  ${spineColor ?? ""}`);
+    } else {
+      manifest[book.id] = {
+        source: "placeholder",
+        fetchedAt: new Date().toISOString(),
+      };
+      console.log(`     ○ ${book.title.slice(0, 40)} (no match on OL or Google Books)`);
+    }
+    await sleep(1000); // polite to both APIs
   }
+
+  // Back-fill spineColor for covers downloaded before this enrichment landed
+  // (old manifest entries with source "openlibrary" but no spineColor).
+  let backfilled = 0;
+  for (const [bookId, entry] of Object.entries(manifest)) {
+    if (entry.source !== "openlibrary" || entry.spineColor) continue;
+    const jpg = resolve(COVER_DIR, `${bookId}.jpg`);
+    if (!existsSync(jpg)) continue;
+    const c = await extractDominantColor(jpg);
+    if (c) {
+      entry.spineColor = c;
+      backfilled++;
+    }
+  }
+  if (backfilled > 0) console.log(`  ✓ back-filled spine colours for ${backfilled} existing covers`);
   writeJson(COVER_MANIFEST_PATH, manifest);
 
-  // Set book.coverUrl from the manifest.
+  // Set book.coverUrl + book.spineColor from the manifest.
   for (const book of books) {
     const entry = manifest[book.id];
-    if (!entry) {
+    if (!entry || entry.source === "placeholder") {
       book.coverUrl = null;
-    } else if (entry.source === "openlibrary") {
-      book.coverUrl = `/covers/${book.id}.jpg`;
+      book.spineColor = null;
     } else {
-      book.coverUrl = null; // placeholder SVG is rendered in-component
+      book.coverUrl = `/covers/${book.id}.jpg`;
+      book.spineColor = entry.spineColor ?? null;
     }
   }
-  const realCovers = Object.values(manifest).filter((e) => e.source === "openlibrary").length;
-  console.log(`  ✓ covers: ${realCovers}/${books.length} real, ${books.length - realCovers} placeholders`);
+  const olCount = Object.values(manifest).filter((e) => e.source === "openlibrary").length;
+  const gbCount = Object.values(manifest).filter((e) => e.source === "googlebooks").length;
+  const manualCount = Object.values(manifest).filter((e) => e.source === "manual").length;
+  const real = olCount + gbCount + manualCount;
+  console.log(
+    `  ✓ covers: ${real}/${books.length} real ` +
+    `(${olCount} open library, ${gbCount} google books, ${manualCount} manual), ` +
+    `${books.length - real} placeholders`,
+  );
   return manifest;
 }
 
@@ -419,6 +690,11 @@ async function main() {
         lang: row.book_lang,
         wordCount: 0,
         coverUrl: null,
+        // Reset on every seed so removing My Clippings.txt clears stale counts.
+        // Overwritten below if the clippings parse returns enrichments for this book.
+        firstHighlightAt: null,
+        mostRecentHighlightAt: null,
+        highlightCount: 0,
       });
     }
 
@@ -442,6 +718,41 @@ async function main() {
 
   console.log(`🌱 Parsed ${words.length} words from ${books.length} books\n`);
 
+  // ---------- Parse My Clippings.txt (optional) ----------
+  let quotes: Quote[] = [];
+  if (existsSync(CLIPPINGS_PATH)) {
+    console.log("✧ Parsing My Clippings.txt…");
+    const raw = readFileSync(CLIPPINGS_PATH, "utf8");
+    const parsed = parseClippings(raw, books);
+    quotes = parsed.quotes;
+
+    // Merge synthesized books (present in clippings but not in vocab.db).
+    const bookIds = new Set(books.map((b) => b.id));
+    for (const sb of parsed.synthesizedBooks) {
+      if (!bookIds.has(sb.id)) {
+        books.push(sb);
+        bookIds.add(sb.id);
+        console.log(`  → new book (clippings only): ${sb.title.slice(0, 50)}`);
+      }
+    }
+
+    // Apply per-book highlight enrichments onto the full books list.
+    for (const [bookId, enrichment] of parsed.bookEnrichments) {
+      const book = books.find((b) => b.id === bookId);
+      if (!book) continue;
+      book.firstHighlightAt = enrichment.firstHighlightAt;
+      book.mostRecentHighlightAt = enrichment.mostRecentHighlightAt;
+      book.highlightCount = enrichment.highlightCount;
+    }
+
+    // Re-sort books now that synthesized entries may have joined.
+    books.sort((a, b) => a.title.localeCompare(b.title));
+
+    console.log(`  ✓ parsed ${quotes.length} quotes across ${parsed.bookEnrichments.size} book(s)\n`);
+  } else {
+    console.log(`↷ no My Clippings.txt at data/raw/ — skipping quotes\n`);
+  }
+
   console.log("📖 Enriching definitions…");
   await enrichDefinitions(words);
 
@@ -450,6 +761,23 @@ async function main() {
 
   writeJson(resolve(OUT_DIR, "words.json"), words);
   writeJson(resolve(OUT_DIR, "books.json"), books);
+  writeJson(QUOTES_PATH, quotes);
+
+  // Touch the content config. Astro's file-loader collections have a
+  // known HMR race with atomic renames — the watcher sees a brief
+  // "file not found" during rename(tmp, final) and may leave the dev
+  // server holding an empty collection until restart. Touching the
+  // config's mtime forces Astro to re-evaluate the entire content
+  // graph, which reliably picks up the new JSON. Cheap, durable.
+  try {
+    const configPath = resolve(ROOT, "src/content.config.ts");
+    const now = new Date();
+    utimesSync(configPath, now, now);
+  } catch {
+    // Best-effort only — if the config is missing or unwritable we
+    // just skip the nudge; seeds still succeed and build still works.
+  }
+
   console.log(`\n✨ Garden seeded.`);
 }
 

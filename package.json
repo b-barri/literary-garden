@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "astro dev",
+    "dev:host": "astro dev --host",
     "build": "astro build",
     "preview": "astro preview",
     "check": "astro check",
@@ -12,7 +13,8 @@
     "seed:refresh-covers": "tsx scripts/import.ts --refresh-covers",
     "seed:refresh-definitions": "tsx scripts/import.ts --refresh-definitions",
     "seed:refresh": "tsx scripts/import.ts --refresh",
-    "seed:offline": "tsx scripts/import.ts --offline"
+    "seed:offline": "tsx scripts/import.ts --offline",
+    "reseed": "tsx scripts/import.ts && rm -rf .astro && echo '✓ reseeded. restart pnpm dev to pick up changes.'"
   },
   "engines": {
     "node": ">=20"
@@ -25,6 +27,7 @@
     "@types/node": "^25.6.0",
     "astro": "^6.1.8",
     "better-sqlite3": "^12.9.0",
+    "sharp": "^0.34.5",
     "svelte": "^5.55.4",
     "tailwindcss": "^4.2.3",
     "tsx": "^4.21.0",
@@ -38,6 +41,7 @@
     ]
   },
   "dependencies": {
+    "html-to-image": "^1.11.13",
     "ts-fsrs": "^5.3.2"
   }
 }

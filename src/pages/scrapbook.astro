@@ -1,0 +1,85 @@
+---
+import BaseLayout from "~/layouts/BaseLayout.astro";
+import Nav from "~/components/Nav.astro";
+import Scrapbook from "~/components/Scrapbook.svelte";
+import { getCollection } from "astro:content";
+
+const bookEntries = await getCollection("books");
+const quoteEntries = await getCollection("quotes");
+
+const books = bookEntries.map((e) => e.data);
+const quotes = quoteEntries.map((e) => e.data);
+---
+
+<BaseLayout title="Scrapbook · Bhavya's Literary Garden" fullBleed={true}>
+  <div class="page watercolor-paper">
+    <Nav currentPath={Astro.url.pathname} />
+
+    <div class="scrapbook-inner">
+      <header class="page-head">
+        <p class="eyebrow">the passages</p>
+        <h1>the scrapbook</h1>
+        <p class="subtitle">
+          the sentences that caught me mid-read — pressed flat between the
+          pages, revisited on quiet afternoons.
+        </p>
+      </header>
+
+      <div class="flourish header-flourish" aria-hidden="true">
+        <span></span><span class="ornament">✦</span><span></span>
+      </div>
+
+      <Scrapbook client:only="svelte" {books} {quotes} />
+    </div>
+  </div>
+</BaseLayout>
+
+<style>
+  .page { min-height: 100dvh; }
+
+  .scrapbook-inner {
+    /* Spine carousel wants the full viewport; use a much wider cap than the
+       other pages and centre with auto margins. Detail pane below narrows. */
+    max-width: 70rem;
+    margin: 0 auto;
+    padding: 0 0 3rem;
+    position: relative;
+  }
+
+  .header-flourish {
+    margin: 0.5rem auto 1.25rem;
+    max-width: 18rem;
+  }
+
+  .page-head {
+    text-align: center;
+    margin: 2rem auto 0.5rem;
+    padding: 0 1.5rem;
+  }
+  .eyebrow {
+    font-family: var(--font-display);
+    font-style: italic;
+    font-size: 0.9rem;
+    color: var(--color-sage-700);
+    letter-spacing: 0.08em;
+  }
+  h1 {
+    font-family: var(--font-display);
+    font-size: clamp(2rem, 6vw, 3rem);
+    color: var(--color-sage-900);
+    margin: 0.25rem 0 0.5rem;
+    letter-spacing: -0.01em;
+  }
+  .subtitle {
+    font-family: var(--font-display);
+    font-style: italic;
+    font-size: 0.95rem;
+    color: var(--color-sepia);
+    max-width: 32rem;
+    margin: 0 auto;
+    line-height: 1.5;
+  }
+  @media (max-width: 420px) {
+    .page-head { margin: 1.25rem auto 1rem; padding: 0 1rem; }
+  }
+</style>

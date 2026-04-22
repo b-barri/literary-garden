@@ -15,14 +15,35 @@
   --color-rose-500: oklch(0.68 0.13 20);
   --color-rose-700: oklch(0.52 0.13 20);
 
+  /* Wisteria — the homepage drape, bed signpost */
+  --color-wisteria-300: oklch(0.78 0.09 300);
+  --color-wisteria-500: oklch(0.62 0.14 300);
+  --color-wisteria-700: oklch(0.45 0.12 300);
+
+  /* Teal — Whistledown's regency border */
+  --color-teal-200: oklch(0.82 0.04 195);
+  --color-teal-500: oklch(0.62 0.06 195);
+  --color-teal-700: oklch(0.45 0.05 195);
+
   /* Parchment & ink */
   --color-cream:    oklch(0.97 0.02 85);
   --color-parchment: oklch(0.92 0.03 80);
   --color-sepia:    oklch(0.72 0.08 70);
   --color-ink:      oklch(0.22 0.02 250);
 
+  /* Leather & gold — bookbinding palette used across the garden + practice */
+  --color-leather-dark:  #2A1D0F;
+  --color-leather-mid:   #3A2A1A;
+  --color-leather-warm:  #4A3620;
+  --color-gold:          #C49A52;
+  --color-gold-light:    #E8C572;
+  --color-gold-deep:     #8A5A28;
+  --color-wax-crimson:   #A82030;
+  --color-wax-amber:     #C47A28;
+
   /* Type */
-  --font-display: "Lora", Garamond, "Cormorant Garamond", serif;
+  --font-display: "Cormorant Garamond", "Lora", Garamond, serif;
+  --font-letter:  "Cormorant Garamond", Garamond, "Times New Roman", serif;
   --font-body:    "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
 
   /* Rhythm */
@@ -37,10 +58,18 @@ html {
   font-family: var(--font-body);
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
+  /* Contain bounce-scroll at the viewport boundary. Without this, iOS
+     Safari rubber-bands the whole page when the user's swipe-drag on the
+     practice card momentarily exceeds the card's bounds — even though
+     `touch-action: none` is set on the card. overscroll-behavior stops
+     the scroll-chain before it reaches the browser's native pull-to-
+     refresh / back-nav gesture. */
+  overscroll-behavior: none;
 }
 
 body {
   min-height: 100dvh;
+  overscroll-behavior: none;
 }
 
 h1, h2, h3, .font-display {
@@ -55,4 +84,39 @@ h1, h2, h3, .font-display {
     animation-duration: 0.01ms !important;
     transition-duration: 0.01ms !important;
   }
+}
+
+/* Watercolor paper — pale wisteria/sage/sepia washes on cream with SVG tooth.
+   Used on any page that wants the garden's paper surface underneath. */
+.watercolor-paper {
+  background-color: var(--color-cream);
+  background-image:
+    radial-gradient(ellipse 60% 45% at 18% 22%, oklch(0.88 0.07 300 / 0.28), transparent 65%),
+    radial-gradient(ellipse 55% 40% at 84% 14%, oklch(0.92 0.05 85 / 0.35), transparent 65%),
+    radial-gradient(ellipse 70% 50% at 50% 85%, oklch(0.9 0.04 145 / 0.22), transparent 70%),
+    radial-gradient(ellipse 50% 35% at 12% 72%, oklch(0.93 0.04 60 / 0.3), transparent 65%),
+    radial-gradient(ellipse 45% 35% at 90% 58%, oklch(0.88 0.05 300 / 0.2), transparent 65%),
+    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='320' height='320'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' seed='7'/><feColorMatrix values='0 0 0 0 0.42  0 0 0 0 0.36  0 0 0 0 0.28  0 0 0 0.22 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
+  background-attachment: fixed, fixed, fixed, fixed, fixed, fixed;
+  background-size: auto, auto, auto, auto, auto, 320px 320px;
+}
+
+/* Ornamental flourish — two hairlines flanking a ✦ ornament.
+   Use between sections on any garden page for a consistent cadence. */
+.flourish {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 0.75rem;
+  color: var(--color-sepia);
+}
+.flourish > span:not(.ornament) {
+  height: 1px;
+  background: currentColor;
+  opacity: 0.35;
+}
+.flourish > .ornament {
+  font-size: 0.7rem;
+  opacity: 0.55;
+  transform: translateY(-1px);
 }

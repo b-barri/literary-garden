@@ -19,6 +19,12 @@ vocabulary/
 *.kfx
 *.azw*
 
+# Kindle clippings metadata (.sdr sidecar dirs) and sideloaded book covers.
+# Same rationale as data/raw/: filenames alone reveal reading history.
+My Clippings.sdr/
+*.sdr/
+book_cover/
+
 # environment
 .env
 .env.*

@@ -3,6 +3,7 @@
   import { loadAll } from "~/lib/progress";
   import { mastery } from "~/lib/scheduler";
   import { assignIllustration, illustrationSvg } from "~/lib/illustration";
+  import { placeholderCoverSrc } from "~/lib/coverFallback";
 
   interface Word {
     id: string;
@@ -131,6 +132,8 @@
         <header>
           {#if group.book?.coverUrl}
             <img class="cover" src={group.book.coverUrl} alt="" />
+          {:else if group.book}
+            <img class="cover" src={placeholderCoverSrc(group.book.id)} alt="" />
           {/if}
           <div>
             <h3>{group.book?.title ?? "—"}</h3>
@@ -342,5 +345,32 @@
     color: var(--color-sepia);
     font-variant: small-caps;
     letter-spacing: 0.08em;
+  }
+
+  /* --- Mobile --- */
+  @media (max-width: 640px) {
+    .in-bloom h2,
+    .pressed-heading {
+      font-size: 1.25rem;
+    }
+    .bloom-list {
+      grid-template-columns: 1fr;
+      gap: 0.4rem;
+    }
+    .specimens {
+      grid-template-columns: 1fr;
+      gap: 0.75rem;
+    }
+    .specimen {
+      grid-template-columns: 52px 1fr;
+      gap: 0.6rem;
+      padding: 0.6rem;
+    }
+    .specimen .illustration { width: 52px; }
+    .specimen h4 { font-size: 1rem; }
+    .specimen .sentence { font-size: 0.72rem; }
+    .album header { gap: 0.75rem; margin-bottom: 0.5rem; }
+    .album .cover { width: 42px; height: 58px; }
+    .album h3 { font-size: 1.1rem; }
   }
 </style>

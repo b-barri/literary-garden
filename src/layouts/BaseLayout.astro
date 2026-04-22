@@ -3,21 +3,55 @@ import "~/styles/global.css";
 
 interface Props {
   title?: string;
+  fullBleed?: boolean;
 }
 
-const { title = "Literary Garden" } = Astro.props;
+const { title = "Bhavya's Literary Garden", fullBleed = false } = Astro.props;
 ---
 
 <!doctype html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta name="color-scheme" content="light" />
     <meta name="robots" content="noindex, nofollow" />
+    <meta name="theme-color" content="#34472F" />
+    <!-- PWA — installable on iOS and Android home screens. Icon + manifest
+         ship from /public; on iOS the apple-touch-icon takes precedence
+         when the user chooses "Add to Home Screen". -->
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <link rel="icon" type="image/png" sizes="48x48" href="/favicon.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="Garden" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500;1,600&family=Lora:ital,wght@0,400;0,500;1,400&family=Inter:wght@400;500&display=swap"
+    />
     <title>{title}</title>
   </head>
-  <body class="mx-auto max-w-3xl px-6 py-12">
+  <body class:list={[{ "full-bleed": fullBleed }]}>
     <slot />
   </body>
 </html>
+
+<style is:global>
+  body {
+    min-height: 100dvh;
+  }
+  body:not(.full-bleed) {
+    max-width: 48rem;
+    margin: 0 auto;
+    padding: 0 1.5rem 3rem;
+  }
+  @media (max-width: 420px) {
+    body:not(.full-bleed) {
+      padding: 0 1rem 2rem;
+    }
+  }
+</style>
