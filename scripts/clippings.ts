@@ -283,6 +283,7 @@ export function reconcileBook(
     lang: "en",
     wordCount: 0,
     coverUrl: null,
+    spineColor: null,
     firstHighlightAt: null,
     mostRecentHighlightAt: null,
     highlightCount: 0,

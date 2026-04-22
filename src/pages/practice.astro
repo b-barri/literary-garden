@@ -1,7 +1,7 @@
 ---
 import BaseLayout from "~/layouts/BaseLayout.astro";
 import Nav from "~/components/Nav.astro";
-import Practice from "~/components/Practice.svelte";
+import PracticeIsland from "~/components/Practice.svelte";
 import { siteConfig } from "~/site.config";
 import { getCollection } from "astro:content";
 
@@ -39,7 +39,7 @@ const books = bookEntries.map((e) => e.data);
         <span></span><span class="ornament">✦</span><span></span>
       </div>
 
-      <Practice client:only="svelte" {allWords} {books} {definitions} />
+      <PracticeIsland client:only="svelte" {allWords} {books} {definitions} />
     </div>
   </div>
 </BaseLayout>

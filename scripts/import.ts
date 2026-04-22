@@ -703,6 +703,7 @@ async function main() {
         lang: row.book_lang,
         wordCount: 0,
         coverUrl: null,
+        spineColor: null,
         // Reset on every seed so removing My Clippings.txt clears stale counts.
         // Overwritten below if the clippings parse returns enrichments for this book.
         firstHighlightAt: null,

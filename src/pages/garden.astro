@@ -1,7 +1,7 @@
 ---
 import BaseLayout from "~/layouts/BaseLayout.astro";
 import Nav from "~/components/Nav.astro";
-import Garden from "~/components/Garden.svelte";
+import GardenIsland from "~/components/Garden.svelte";
 import { siteConfig } from "~/site.config";
 import { getCollection } from "astro:content";
 
@@ -29,7 +29,7 @@ const books = bookEntries.map((e) => e.data);
         <span></span><span class="ornament">✦</span><span></span>
       </div>
 
-      <Garden client:only="svelte" {allWords} {books} />
+      <GardenIsland client:only="svelte" {allWords} {books} />
     </div>
   </div>
 </BaseLayout>

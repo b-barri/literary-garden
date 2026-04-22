@@ -73,7 +73,8 @@ pnpm dev                                            # Astro at http://localhost:
 **Optional personalization:**
 - Drop your own `public/og-image.png` (1200×630) for LinkedIn/Twitter/Facebook link previews.
 - Drop your own wax-seal stamp into `public/your-stamp.png` and point `stampImage` at it. The default `stamp-default.svg` ships with a generic seal.
-- Also update `public/manifest.webmanifest`'s `name` field to match your `siteTitle` — it's static JSON and can't import the config automatically.
+- **PWA icons** (home-screen icon on iOS/Android): the template ships with the repo's default cameo as the app icon. To brand the installed PWA with your own mark, replace `public/cameo.png` with your 512×512 PNG, then run `pnpm tsx scripts/gen-icons.ts` to regenerate `icon-192.png`, `icon-512.png`, `apple-touch-icon.png`, and `favicon.png` in one shot.
+- The PWA manifest name is auto-generated from `siteConfig.siteTitle` at build time via `src/pages/manifest.webmanifest.ts` — no manual sync needed.
 
 ### Dev scripts
 
@@ -141,6 +142,20 @@ vercel link                                 # one-time: creates .vercel/, gitign
 ```
 
 **Before the first deploy**, in the Vercel dashboard → Project Settings → **Deployment Protection**, enable **Vercel Authentication** (free on Hobby). This gates your site behind Vercel's login — no public URL.
+
+**Also before the first deploy**, make sure `git config --local user.email` matches an email verified on your GitHub account (see https://github.com/settings/emails). Vercel blocks deploys from commits whose author email isn't GitHub-verified — the default Mac-generated `you@Your-laptop.local` trips this check. If you've already committed with the wrong email, rewrite history:
+```sh
+git config --local user.email "you@verified.example"
+git config --local user.name "Your Name"
+git filter-branch -f --env-filter '
+  export GIT_AUTHOR_NAME="Your Name"
+  export GIT_AUTHOR_EMAIL="you@verified.example"
+  export GIT_COMMITTER_NAME="Your Name"
+  export GIT_COMMITTER_EMAIL="you@verified.example"
+' -- --all
+git push -f origin main
+```
+(Force-push is safe on a brand-new repo with no collaborators. Skip this step if your commits were already authored correctly.)
 
 ```sh
 pnpm deploy:prod      # seed → build → vercel build → vercel deploy --prebuilt
