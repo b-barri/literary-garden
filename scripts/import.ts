@@ -628,6 +628,19 @@ async function main() {
   mkdirSync(OUT_DIR, { recursive: true });
 
   const db = new Database(DB_PATH, { readonly: true, fileMustExist: true });
+
+  // Empty-table guard — catches the "I copied vocab.db but had no Kindle
+  // dictionary lookups" case so the user sees a helpful message instead of
+  // an empty garden with no explanation.
+  const wordCount = (db.prepare("SELECT COUNT(*) AS n FROM WORDS").get() as { n: number }).n;
+  if (wordCount < 1) {
+    console.error("✖ Seeded 0 words — vocab.db has no WORDS rows.");
+    console.error("  Is Kindle dictionary lookup enabled? (Settings → Language & Dictionary)");
+    console.error("  You need at least one word looked up on-device for the garden to grow.");
+    db.close();
+    process.exit(1);
+  }
+
   const rows = db
     .prepare(
       `SELECT
