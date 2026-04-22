@@ -1,0 +1,10 @@
+# Media drop-zone
+
+Put user-supplied README media here. Placeholders referenced from ../../README.md:
+- hero.png (hero image — Pressed Album export or Garden beauty shot)
+- kindle-walkthrough.png (Finder screenshot of Kindle volume)
+- site-config-edit.png (screenshot of site.config.ts fields)
+
+These are gitignored by default if you drop personal screenshots — the
+.gitkeep keeps the directory in the tree.
+
