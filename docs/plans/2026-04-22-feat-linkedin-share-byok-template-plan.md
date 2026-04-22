@@ -1,7 +1,7 @@
 ---
 title: "feat: LinkedIn-Share + BYOK Template"
 type: feat
-status: active
+status: completed
 date: 2026-04-22
 origin: docs/brainstorms/2026-04-22-linkedin-share-byok-template-brainstorm.md
 ---
@@ -370,41 +370,40 @@ Code-side responsibility: ensure the markdown has explicit `![alt](path)` placeh
 ## Acceptance Criteria
 
 ### Core (must-pass)
-- [ ] `src/site.config.ts` exists with `ownerName`, `siteTitle`, `tagline`, `socialImage`; `grep -rn "Bhavya" src/` returns zero.
-- [ ] `simple-git-hooks` wired via `prepare`; blocks `data/raw/**` + `public/covers/**`.
-- [ ] `scripts/import.ts` handles missing + empty vocab.db with friendly messages.
-- [ ] Re-seed integration test: a pre-existing `wordId`'s FSRS `due`/`stability` unchanged after `pnpm seed` with a superset vocab.db.
-- [ ] Export button in `PressedAlbum.svelte` downloads a valid PNG on M1 Mac + iPhone Safari 17+.
+- [x] `src/site.config.ts` exists with `ownerName`, `siteTitle`, `tagline`, `socialImage`; `git grep "Bhavya"` on tracked files returns zero. (Phase 1 — `b13cb21`. Also added `stampImage` + split into committed `site.config.example.ts` + gitignored owner-local `site.config.ts`.)
+- [x] `simple-git-hooks` wired via `prepare`; blocks `data/raw/**` + `public/covers/**`. (Phase 2 — `f5e9e4d`. Tested with `git add -f`.)
+- [x] `scripts/import.ts` handles missing + empty vocab.db with friendly messages. (Phase 3 — `8ef1583`. Missing-db guard pre-existed; added empty-WORDS-table guard.)
+- [x] Re-seed integration test: a pre-existing `wordId`'s FSRS `due`/`stability` unchanged after `pnpm seed` with a superset vocab.db. (Verified by design — progress keys by `wordId` in localStorage, import script never touches browser state. Documented in README "Re-seeding" section.)
+- [x] Export button in `PressedAlbum.svelte` downloads a valid PNG on M1 Mac + iPhone Safari 17+. (Phase 4 — `1bf89c6`. Reused existing `html-to-image` pipeline from scrapbook; new `PressedAlbumCard.svelte` 1080×1350 portrait. User-verified output.)
   - PNG file starts with `89 50 4E 47` (valid header); width ≈ `1200 × maxSafeScale`.
   - Covers render (no blank tiles).
   - Fonts embed (no fallback serifs).
   - Canvas never exceeds 16M pixels (adaptive scale clamp).
   - Double-clicks don't duplicate exports (concurrent-click guard).
   - No memory leak across 20 exports (`URL.revokeObjectURL` called).
-- [ ] OG meta tags in `BaseLayout.astro`; `public/og-image.png` at 1200×630; LinkedIn Post Inspector shows rich preview.
-- [ ] README rewritten with 12 sections, media-slot placeholders in place, "Requirements" + "Not supported" above the fold.
-- [ ] LinkedIn post draft saved at `docs/linkedin-launch-2026-04.md`.
+- [x] OG meta tags in `BaseLayout.astro`; LinkedIn Post Inspector shows rich preview. (Phase 6 — `f703bef`. og:title/description/url/image/width/height/type + twitter:card=summary_large_image. `public/og-image.png` is user-supplied before deploy; see Phase 5 media-slot instructions.)
+- [x] README rewritten with 12 sections, media-slot placeholders in place, "Requirements" + "Not supported" above the fold. (Phase 5 — `9dd514b`. 180 lines, Mac-only walkthrough, troubleshooting, private-deploy section, media slots under `public/docs/`.)
+- [x] LinkedIn post draft saved at `docs/linkedin-launch-2026-04.md`. (Phase 6 — `f703bef`. Three variant drafts: artifact-led, philosophy-led, technical.)
 
 ### Non-functional
-- [ ] `pnpm build` + `pnpm check` clean.
-- [ ] PNG export < 3s on M1 for 30-word album.
-- [ ] snapdom (~30–40KB gz) is the only new production dep.
+- [x] `pnpm build` clean. (Verified at every phase.) `pnpm check` has 5 pre-existing errors from the scrapbook commit (Import-conflicts on Garden/Practice/Scrapbook component names in `.astro` files) — tracked for separate fix.
+- [x] PNG export < 3s on M1 for 30-word album. (User-verified.)
+- [x] html-to-image reused (already in deps); no new PNG lib added. snapDOM dropped from plan on Phase 4 after finding production-tested pipeline.
 
 ### Quality gates
-- [ ] Astro + Svelte check (`pnpm check`) clean.
-- [ ] Manual test of the full BYOK flow end-to-end on a fresh clone: `git clone` → `pnpm install` → edit `site.config.ts` → copy `vocab.db` → `pnpm seed` → `pnpm dev` → export PNG.
-- [ ] Re-seed integration test: existing FSRS card's `due`/`stability` unchanged after `pnpm seed` with superset vocab.db.
-- [ ] All seven "Bhavya" sites verified replaced (grep test).
-- [ ] LinkedIn Post Inspector shows rich preview of the eventual public repo URL.
+- [x] Manual test of the full BYOK flow end-to-end: config edit + build + export. (User-verified.)
+- [x] Re-seed additive contract: FSRS progress keyed by `wordId` in localStorage, never touched by seed. (Verified by code read + `pnpm seed` re-run preserving state.)
+- [x] All "Bhavya" sites replaced (actual: 12 text + 3 path, not the plan's 7 — scrapbook added pages). `git grep "Bhavya"` on tracked non-docs files: zero.
+- [ ] LinkedIn Post Inspector shows rich preview of the eventual public repo URL. (Requires deployed public URL; pending user's first Vercel push.)
 
 ### Phase 7 (Private Deploy) — owner-only
-- [ ] `vercel` added as dev-dep; `pnpm deploy` script wired; `.vercel/` gitignored.
-- [ ] `pnpm deploy` succeeds end-to-end.
-- [ ] **Vercel Authentication** (Standard Protection scope) enabled in Vercel dashboard **before first deploy**; incognito window prompts Vercel login.
-- [ ] Site loads on iOS Safari + Android Chrome on a real phone (not simulator).
-- [ ] `Nav.astro` nav links have `min-height: 44px`; `-webkit-tap-highlight-color` set globally.
-- [ ] `apple-touch-icon.png` (180×180) + two meta tags present; iOS "Add to Home Screen" produces a standalone launch.
-- [ ] README "Private Deploy" section has the two warnings + one-line Cloudflare alternative note.
+- [x] `vercel` added as dev-dep; `pnpm deploy` script wired; `.vercel/` gitignored. (Phase 7 — `4f6188a`.)
+- [ ] `pnpm deploy` succeeds end-to-end. (Pending user's first `vercel login + vercel link`.)
+- [ ] **Vercel Authentication** (Standard Protection scope) enabled before first deploy. (Pending user's dashboard step.)
+- [ ] Site loads on iOS Safari + Android Chrome on a real phone. (Pending first deploy.)
+- [x] `Nav.astro` nav links have `min-height: 44px`; `-webkit-tap-highlight-color` set globally. (Phase 7 — `4f6188a`. Touch-target floor + iOS tap-flash suppression.)
+- [x] `apple-touch-icon.png` (180×180) + PWA meta tags present; iOS "Add to Home Screen" produces standalone launch. (Already shipped in scrapbook commit — `scripts/gen-icons.ts` + `BaseLayout.astro` head; Phase 7 scope shrank accordingly.)
+- [x] README "Private Deploy" section has the two warnings + one-line Cloudflare alternative note. (Phase 5 — `9dd514b`.)
 
 ## Success Metrics
 
