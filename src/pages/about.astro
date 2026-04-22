@@ -1,9 +1,10 @@
 ---
 import BaseLayout from "~/layouts/BaseLayout.astro";
 import Nav from "~/components/Nav.astro";
+import { siteConfig } from "~/site.config";
 ---
 
-<BaseLayout title="About · Bhavya's Literary Garden" fullBleed={true}>
+<BaseLayout title={`About · ${siteConfig.siteTitle}`} fullBleed={true}>
   <div class="page watercolor-paper">
     <Nav currentPath={Astro.url.pathname} />
 

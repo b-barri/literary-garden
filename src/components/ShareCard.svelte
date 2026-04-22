@@ -12,6 +12,7 @@
 
   import type { Book, Quote } from "~/lib/types";
   import { placeholderCoverSrc } from "~/lib/coverFallback";
+  import { siteConfig } from "~/site.config";
 
   interface Props {
     quote: Quote;
@@ -99,7 +100,7 @@
   <!-- Footer: attribution left, stamp right. -->
   <footer class="card-foot">
     <div class="attribution">
-      <p class="from">from Bhavya&rsquo;s literary garden</p>
+      <p class="from">from {siteConfig.ownerName}&rsquo;s literary garden</p>
       <p class="sub">
         {#if quote.page}
           page {quote.page.replace(/^page\s*/i, "")}

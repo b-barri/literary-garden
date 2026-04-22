@@ -2,6 +2,7 @@
 import BaseLayout from "~/layouts/BaseLayout.astro";
 import Nav from "~/components/Nav.astro";
 import Garden from "~/components/Garden.svelte";
+import { siteConfig } from "~/site.config";
 import { getCollection } from "astro:content";
 
 const wordEntries = await getCollection("words");
@@ -11,7 +12,7 @@ const allWords = wordEntries.map((e) => e.data);
 const books = bookEntries.map((e) => e.data);
 ---
 
-<BaseLayout title="Garden · Bhavya's Literary Garden" fullBleed={true}>
+<BaseLayout title={`Garden · ${siteConfig.siteTitle}`} fullBleed={true}>
   <div class="page watercolor-paper">
     <Nav currentPath={Astro.url.pathname} />
 

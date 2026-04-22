@@ -1,12 +1,14 @@
 ---
 import "~/styles/global.css";
+import { siteConfig, IS_PLACEHOLDER } from "~/site.config";
 
 interface Props {
   title?: string;
   fullBleed?: boolean;
 }
 
-const { title = "Bhavya's Literary Garden", fullBleed = false } = Astro.props;
+const { title = siteConfig.siteTitle, fullBleed = false } = Astro.props;
+const isDev = import.meta.env.DEV;
 ---
 
 <!doctype html>
@@ -37,6 +39,14 @@ const { title = "Bhavya's Literary Garden", fullBleed = false } = Astro.props;
   </head>
   <body class:list={[{ "full-bleed": fullBleed }]}>
     <slot />
+    {isDev && IS_PLACEHOLDER && (
+      <script is:inline>
+        console.warn(
+          "[literary-garden] src/site.config.ts is still using placeholder values. " +
+          "Copy src/site.config.example.ts to src/site.config.ts and edit ownerName/siteTitle."
+        );
+      </script>
+    )}
   </body>
 </html>
 

@@ -25,6 +25,15 @@ My Clippings.sdr/
 *.sdr/
 book_cover/
 
+# Owner-specific config (copied from site.config.example.ts locally).
+# Template ships the .example only; owner's real values stay out of git.
+src/site.config.ts
+
+# Owner-specific personal stamp image. Template ships the generic
+# /public/stamp-default.svg as fallback.
+public/bhavya-stamp.png
+public/*-stamp.png
+
 # environment
 .env
 .env.*

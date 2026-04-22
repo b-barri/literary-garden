@@ -5,6 +5,7 @@
   import ShareCard from "./ShareCard.svelte";
   import { sharePNG, downloadPNG } from "~/lib/share";
   import { slugify } from "~/lib/slugify";
+  import { siteConfig } from "~/site.config";
 
   interface Props {
     open: boolean;
@@ -44,16 +45,16 @@
     return () => observer.disconnect();
   });
 
-  // Prefer a custom Bhavya stamp if present, else ship the default wax seal.
-  // We probe once when the modal opens; ignore fetch errors silently.
+  // Prefer the owner's custom stamp if present, else ship the default wax
+  // seal. We probe once when the modal opens; ignore fetch errors silently.
   let stampSrc = $state("/stamp-default.svg");
   $effect(() => {
     if (!open) return;
-    // Opportunistic HEAD to detect a user-supplied /bhavya-stamp.png.
+    // Opportunistic HEAD to detect the configured owner stamp.
     // Missing file → 404 → we keep the default without error noise.
-    fetch("/bhavya-stamp.png", { method: "HEAD" })
+    fetch(siteConfig.stampImage, { method: "HEAD" })
       .then((r) => {
-        if (r.ok) stampSrc = "/bhavya-stamp.png";
+        if (r.ok) stampSrc = siteConfig.stampImage;
       })
       .catch(() => {});
   });

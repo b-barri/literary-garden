@@ -1,4 +1,6 @@
 ---
+import { siteConfig } from "~/site.config";
+
 interface Props {
   currentPath: string;
 }
@@ -20,7 +22,7 @@ function isActive(href: string) {
 
 <nav class="site-nav" aria-label="primary">
   <div class="nav-inner">
-    <a href="/" class="brand" aria-label="Bhavya's Literary Garden — home">
+    <a href="/" class="brand" aria-label={`${siteConfig.siteTitle} — home`}>
       <span class="cameo" aria-hidden="true">
         <img src="/cameo.png" alt="" />
       </span>

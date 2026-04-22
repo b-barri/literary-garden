@@ -1,9 +1,10 @@
 ---
 import BaseLayout from "~/layouts/BaseLayout.astro";
 import Nav from "~/components/Nav.astro";
+import { siteConfig } from "~/site.config";
 ---
 
-<BaseLayout title="Bhavya's Literary Garden" fullBleed={true}>
+<BaseLayout title={siteConfig.siteTitle} fullBleed={true}>
   <div class="page watercolor-paper">
     <Nav currentPath={Astro.url.pathname} />
 
@@ -17,7 +18,7 @@ import Nav from "~/components/Nav.astro";
           <img src="/cameo.png" alt="" loading="eager" />
         </div>
 
-        <h1 class="title">Bhavya's Literary Garden</h1>
+        <h1 class="title">{siteConfig.siteTitle}</h1>
         <p class="subtitle">a gentle reader's notes</p>
         <hr class="rule" />
       </div>
@@ -51,7 +52,7 @@ import Nav from "~/components/Nav.astro";
 
         <p class="signoff">
           <em>Yours Truly,</em><br />
-          <span class="signature">Bhavya</span>
+          <span class="signature">{siteConfig.ownerName}</span>
         </p>
       </article>
 

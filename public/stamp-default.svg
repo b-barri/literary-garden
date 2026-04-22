@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Generic wax-seal placeholder for share cards. Replace with your own
+  stamp image by (a) dropping a PNG into /public and (b) updating
+  `stampImage` in src/site.config.ts to point at it. PNGs with
+  transparent backgrounds look best.
+-->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200" aria-hidden="true">
+  <defs>
+    <radialGradient id="wax" cx="0.35" cy="0.35" r="0.9">
+      <stop offset="0%" stop-color="#B44E3A"/>
+      <stop offset="55%" stop-color="#8B2E1E"/>
+      <stop offset="100%" stop-color="#54170C"/>
+    </radialGradient>
+    <filter id="paper">
+      <feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" seed="3"/>
+      <feColorMatrix values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 0.08 0"/>
+      <feComposite in2="SourceGraphic" operator="in"/>
+    </filter>
+  </defs>
+
+  <!-- Wax blob: irregular circle so it reads as hand-pressed rather
+       than machine-stamped. -->
+  <path
+    d="M100 20
+       C130 18, 158 34, 174 62
+       C188 86, 186 118, 172 144
+       C158 168, 128 184, 100 184
+       C72 184, 42 170, 28 146
+       C14 120, 12 86, 28 60
+       C44 36, 70 22, 100 20 Z"
+    fill="url(#wax)"
+  />
+
+  <!-- Subtle surface grain. -->
+  <path
+    d="M100 20 C130 18, 158 34, 174 62 C188 86, 186 118, 172 144
+       C158 168, 128 184, 100 184 C72 184, 42 170, 28 146
+       C14 120, 12 86, 28 60 C44 36, 70 22, 100 20 Z"
+    fill="#FFFFFF"
+    filter="url(#paper)"
+    opacity="0.35"
+  />
+
+  <!-- Decorative fleur pressed into the wax. -->
+  <g transform="translate(100 100)" fill="#FBE9D2" opacity="0.85">
+    <path
+      d="M0 -40
+         C-10 -20, -14 -10, -26 -6
+         C-14 -2, -10 8, 0 28
+         C10 8, 14 -2, 26 -6
+         C14 -10, 10 -20, 0 -40 Z
+         M0 28 L0 42"
+      stroke="#FBE9D2"
+      stroke-width="1"
+      fill="#FBE9D2"
+    />
+    <circle cx="0" cy="-2" r="3" fill="#54170C" opacity="0.4"/>
+  </g>
+
+  <!-- Outer hairline ring suggesting the seal press edge. -->
+  <circle cx="100" cy="100" r="82" fill="none" stroke="#54170C" stroke-width="1.2" opacity="0.35"/>
+</svg>
