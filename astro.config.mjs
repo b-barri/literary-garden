@@ -16,5 +16,10 @@ export default defineConfig({
       include: ["html-to-image"],
     },
   },
+  // `site` is the canonical base URL used for OG meta tags (og:url,
+  // absolute og:image) and sitemap generation. Dev-default is localhost
+  // so local builds produce valid-looking tags. **Update this to your
+  // Vercel/Cloudflare deployment URL before your first production build**
+  // so LinkedIn/Twitter/etc. can fetch the og-image.
   site: "http://localhost:4321",
 });
