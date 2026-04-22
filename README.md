@@ -181,6 +181,8 @@ pnpm deploy:prod      # seed → build → vercel build → vercel deploy --preb
 
 (NB: the script is `deploy:prod`, not `deploy` — the latter is a pnpm built-in that does something unrelated.)
 
+**Why deploys are CLI-only, not git-triggered.** The repo ships with `vercel.json` setting `git.deploymentEnabled.main: false`. Reason: a remote git-triggered build would try to run `pnpm seed`, which needs `data/raw/vocab.db` (your personal Kindle file, gitignored). Seeding would fail on Vercel with no vocab.db. So we only deploy via the CLI's prebuilt path — seed + build locally, upload the static output. If you want git-triggered deploys (e.g. after migrating to a setup that doesn't need local Kindle data), delete the `git.deploymentEnabled` block from `vercel.json`.
+
 **Three warnings you must not skip:**
 
 1. **Enable Deployment Protection before deploying.** Settings → Deployment Protection → Vercel Authentication → on.
