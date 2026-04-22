@@ -72,9 +72,27 @@ pnpm dev                                            # Astro at http://localhost:
 
 **Optional personalization:**
 - Drop your own `public/og-image.png` (1200×630) for LinkedIn/Twitter/Facebook link previews.
-- Drop your own wax-seal stamp into `public/your-stamp.png` and point `stampImage` at it. The default `stamp-default.svg` ships with a generic seal.
 - **PWA icons** (home-screen icon on iOS/Android): the template ships with the repo's default cameo as the app icon. To brand the installed PWA with your own mark, replace `public/cameo.png` with your 512×512 PNG, then run `pnpm tsx scripts/gen-icons.ts` to regenerate `icon-192.png`, `icon-512.png`, `apple-touch-icon.png`, and `favicon.png` in one shot.
 - The PWA manifest name is auto-generated from `siteConfig.siteTitle` at build time via `src/pages/manifest.webmanifest.ts` — no manual sync needed.
+
+### Personalizing your share-card stamp
+
+When you share a passage from the Scrapbook tab, the generated card closes with a small wax-seal "stamp" in the bottom-right corner. This is the signature that says "from this reader's garden." The template ships with a generic seal — replace it with your own mark for a personal touch.
+
+**Out of the box:** The template ships `public/stamp-default.svg` (a generic red-wax seal with a botanical flourish). If you don't customize anything, every share card you generate uses this seal. It works; it's just not yours.
+
+**To use your own:**
+
+1. Create or export your stamp as a PNG (~400×400 px, transparent background works best) or an SVG.
+2. Drop it into `public/`, e.g. `public/alice-stamp.png`.
+3. Edit `src/site.config.ts` → `stampImage: "/alice-stamp.png"`.
+4. Restart `pnpm dev` (or rebuild).
+
+That's it. The share modal probes the configured path at open time and uses it if present; missing files silently fall back to the default seal, so there's no broken-image failure mode.
+
+**Artwork ideas:** a signet initial (hand-drawn), a personal sigil, a wax-seal generator output, a small illustrated icon that means something to you. Avoid anything rectangular — the card foot is styled for a roughly circular mark.
+
+`public/*-stamp.png` is gitignored by default (see `.gitignore`) so your personal stamp doesn't accidentally upstream into a fork. If you want to commit a shared team stamp, use a different filename like `public/brand-mark.png`.
 
 ### Dev scripts
 

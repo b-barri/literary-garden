@@ -23,8 +23,11 @@ export interface SiteConfig {
   tagline: string;
   /** Path to the OG image served from /public. Served as og:image. */
   socialImage: string;
-  /** Path to the personal wax-seal stamp used on share cards. Falls back
-   *  to /stamp-default.svg if the referenced file is missing. */
+  /** Path to the personal wax-seal "stamp" shown in the bottom-right of
+   *  share cards. The template ships /stamp-default.svg (a generic seal).
+   *  To personalize: drop your own PNG/SVG into public/ and point this
+   *  at it, e.g. "/my-stamp.png". Missing files silently fall back to
+   *  /stamp-default.svg (no broken-image failure mode). */
   stampImage: string;
 }
 
