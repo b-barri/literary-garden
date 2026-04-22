@@ -1,9 +1,13 @@
 <script lang="ts">
+  import { tick } from "svelte";
   import type { Card } from "ts-fsrs";
   import { loadAll } from "~/lib/progress";
   import { mastery } from "~/lib/scheduler";
   import { assignIllustration, illustrationSvg } from "~/lib/illustration";
   import { placeholderCoverSrc } from "~/lib/coverFallback";
+  import PressedAlbumCard from "./PressedAlbumCard.svelte";
+  import { sharePNG, canNativeShare } from "~/lib/share";
+  import { siteConfig } from "~/site.config";
 
   interface Word {
     id: string;
@@ -80,6 +84,85 @@
   function formatPressedDate(d: Date): string {
     return d.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
   }
+
+  // --- Export pipeline ---
+  //
+  // Click-handler mounts the off-screen <PressedAlbumCard> at its native
+  // 1080×1350 dimensions, waits one tick + font-ready + image-decode,
+  // then calls sharePNG (Web Share on mobile, download fallback).
+  //
+  // Concurrent-click guard: `exporting` state disables the button during
+  // capture. The card only lives in the DOM while `showExport` is true,
+  // which keeps the cost of pressing the album page to zero when not
+  // exporting (the card is not cheap — 6 cover <img> tags each force a
+  // network request on first load).
+  let exporting = $state(false);
+  let showExport = $state(false);
+  let exportNode: HTMLDivElement | undefined = $state();
+  let exportError = $state<string | null>(null);
+
+  const canShare = $derived(canNativeShare());
+
+  async function handleExport() {
+    if (exporting || pressed.length === 0) return;
+    exporting = true;
+    exportError = null;
+    showExport = true;
+    try {
+      // Wait for Svelte to flush state -> DOM.
+      await tick();
+      if (!exportNode) throw new Error("export node failed to mount");
+
+      // Explicit font preload — fonts.ready alone can resolve before a
+      // just-requested weight has painted. Two fonts in use on the card.
+      const loadFont = (w: string, f: string) =>
+        document.fonts.load(w, f).catch(() => {});
+      await Promise.all([
+        loadFont('500 58px "Cormorant Garamond"'),
+        loadFont('italic 22px "Cormorant Garamond"'),
+        loadFont('400 16px "Lora"'),
+        document.fonts.ready,
+      ]);
+
+      // Wait for cover images to decode — .ready/.fonts doesn't cover
+      // <img>. Decoded images render into the html-to-image clone cleanly;
+      // undecoded ones render as blank squares.
+      const imgs = Array.from(
+        exportNode.querySelectorAll<HTMLImageElement>("img"),
+      );
+      await Promise.all(
+        imgs.map((img) =>
+          img.complete && img.naturalWidth > 0
+            ? img.decode().catch(() => {})
+            : new Promise<void>((r) => {
+                img.onload = () => r();
+                img.onerror = () => r();
+              }),
+        ),
+      );
+
+      // Two-frame yield so any loading UI paints before the synchronous
+      // rasterize burst on the main thread.
+      await new Promise<void>((r) =>
+        requestAnimationFrame(() => requestAnimationFrame(() => r())),
+      );
+
+      const datestamp = new Date().toISOString().slice(0, 10);
+      const slug = siteConfig.ownerName.toLowerCase().replace(/[^a-z0-9]+/g, "-");
+      await sharePNG(exportNode, {
+        title: `${siteConfig.ownerName}'s pressed words`,
+        text: "words pressed in my literary garden",
+        filename: `${slug}-pressed-${datestamp}`,
+      });
+    } catch (err) {
+      exportError = err instanceof Error ? err.message : "export failed";
+      // Best-effort: leave the card mounted long enough for the error
+      // message to be legible, then tear down anyway on next click.
+    } finally {
+      showExport = false;
+      exporting = false;
+    }
+  }
 </script>
 
 {#if !mounted}
@@ -120,11 +203,34 @@
   {/if}
 
   {#if pressed.length > 0}
-    <h2 class="pressed-heading">🏵️ pressed</h2>
-    <p class="count">
-      {pressed.length} pressing{pressed.length === 1 ? "" : "s"}
-      from {grouped.length} book{grouped.length === 1 ? "" : "s"}
-    </p>
+    <div class="pressed-header">
+      <div>
+        <h2 class="pressed-heading">🏵️ pressed</h2>
+        <p class="count">
+          {pressed.length} pressing{pressed.length === 1 ? "" : "s"}
+          from {grouped.length} book{grouped.length === 1 ? "" : "s"}
+        </p>
+      </div>
+      <button
+        type="button"
+        class="export-btn"
+        onclick={handleExport}
+        disabled={exporting}
+        aria-label={canShare ? "share pressed album" : "download pressed album"}
+      >
+        {#if exporting}
+          <span class="spinner" aria-hidden="true"></span>
+          {canShare ? "sharing…" : "saving…"}
+        {:else}
+          {canShare ? "✦ share album" : "✦ save as image"}
+        {/if}
+      </button>
+    </div>
+    {#if exportError}
+      <p class="export-error" role="alert">
+        Couldn&rsquo;t export — {exportError}. Please try again.
+      </p>
+    {/if}
   {/if}
   <div class="albums">
     {#each grouped as group (group.book?.id ?? "unknown")}
@@ -162,7 +268,92 @@
   </div>
 {/if}
 
+<!--
+  Off-screen export card. Mounted only while `showExport` is true so the 6
+  cover <img> tags don't fetch on every album-page view. `left: -10000px`
+  keeps the node fully laid out (vs `display: none`, which zeroes layout
+  and breaks html-to-image capture).
+-->
+{#if showExport}
+  <div
+    class="export-stage"
+    aria-hidden="true"
+    bind:this={exportNode}
+  >
+    <PressedAlbumCard {pressed} {booksById} />
+  </div>
+{/if}
+
 <style>
+  /* Off-screen export stage — laid-out but not visible. `display:none`
+     would zero dimensions and break the capture; `left:-10000px` is the
+     battle-tested pattern from src/lib/share.ts's sibling component. */
+  .export-stage {
+    position: fixed;
+    left: -10000px;
+    top: 0;
+    width: 1080px;
+    pointer-events: none;
+    z-index: -1;
+  }
+
+  /* --- Pressed heading row with export button --- */
+  .pressed-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    gap: 1rem;
+    margin-top: 1.5rem;
+    flex-wrap: wrap;
+  }
+  .export-btn {
+    font-family: var(--font-display);
+    font-style: italic;
+    font-size: 0.95rem;
+    color: var(--color-sage-900);
+    background: var(--color-cream);
+    border: 1px solid oklch(0.72 0.08 70 / 0.55);
+    border-bottom-width: 2px;
+    padding: 0.55rem 1.1rem;
+    border-radius: 4px;
+    cursor: pointer;
+    letter-spacing: 0.02em;
+    transition: background 0.15s ease, transform 0.05s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    min-height: 44px;
+    -webkit-tap-highlight-color: rgba(0, 0, 0, 0.08);
+  }
+  .export-btn:hover:not(:disabled) {
+    background: oklch(0.96 0.03 80);
+  }
+  .export-btn:active:not(:disabled) {
+    transform: translateY(1px);
+  }
+  .export-btn:disabled {
+    opacity: 0.55;
+    cursor: progress;
+  }
+  .export-btn .spinner {
+    display: inline-block;
+    width: 12px;
+    height: 12px;
+    border: 1.5px solid currentColor;
+    border-top-color: transparent;
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+  }
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }
+  .export-error {
+    margin: 0.5rem 0 0;
+    font-size: 0.88rem;
+    color: oklch(0.45 0.12 25);
+    font-style: italic;
+  }
+
   .loading {
     text-align: center;
     color: var(--color-sepia);
