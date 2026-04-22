@@ -143,10 +143,10 @@ vercel link                                 # one-time: creates .vercel/, gitign
 **Before the first deploy**, in the Vercel dashboard → Project Settings → **Deployment Protection**, enable **Vercel Authentication** (free on Hobby). This gates your site behind Vercel's login — no public URL.
 
 ```sh
-pnpm seed && pnpm build
-vercel build --prod
-vercel deploy --prebuilt --prod             # uploads only the static output
+pnpm deploy:prod      # seed → build → vercel build → vercel deploy --prebuilt
 ```
+
+(NB: the script is `deploy:prod`, not `deploy` — the latter is a pnpm built-in that does something unrelated.)
 
 **Two warnings you must not skip:**
 
