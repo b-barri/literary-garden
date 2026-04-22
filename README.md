@@ -148,10 +148,11 @@ pnpm deploy:prod      # seed → build → vercel build → vercel deploy --preb
 
 (NB: the script is `deploy:prod`, not `deploy` — the latter is a pnpm built-in that does something unrelated.)
 
-**Two warnings you must not skip:**
+**Three warnings you must not skip:**
 
-1. **Enable Deployment Protection before deploying**, and only use the `*.vercel.app` URL. On Hobby tier, production custom domains are always public — stick with the generated URL or your reading list is scrapeable.
-2. **State is per-browser.** Your spaced-repetition progress lives in each device's localStorage. Pressing a word on your phone doesn't sync to your laptop. Pick one "primary" device for serious practice and use the other for casual browsing.
+1. **Enable Deployment Protection before deploying.** Settings → Deployment Protection → Vercel Authentication → on.
+2. **After your first deploy, immediately remove the three "short" aliases.** Vercel Hobby's Standard Protection only covers the hashed deployment URL (e.g. `literary-garden-ab12cd-...`), NOT the short aliases it auto-creates (`your-project.vercel.app`, `your-project-<scope>.vercel.app`, `your-project-git-main-<scope>.vercel.app`). Those serve publicly. Find them with `pnpm vercel alias ls | grep your-project` and remove each with `pnpm vercel alias rm <alias> --yes`. Then verify with `curl -I <alias>` — you want a 404, not a 200.
+3. **State is per-browser.** Your spaced-repetition progress lives in each device's localStorage. Pressing a word on your phone doesn't sync to your laptop. Pick one "primary" device for serious practice.
 
 If you need shared-password access (a friend who doesn't have a Vercel account), switch to **Cloudflare Pages + Access** — their free tier allows magic-link email policies and up to 50 users. The `pnpm build` output is the same; only the deploy step changes.
 
