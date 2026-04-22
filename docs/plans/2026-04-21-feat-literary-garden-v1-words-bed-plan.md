@@ -230,14 +230,21 @@ Gotchas captured for `docs/solutions/` (Phase 4):
 - 22 books have either a real cover or a styled botanical placeholder — never a broken image.
 - Pressed words appear in /album once they graduate.
 
-#### Phase 4 — Polish (weekend 4)
+#### Phase 4 — Polish (weekend 4) ✅ **Complete 2026-04-22**
 
-- **Accessibility:** audit contrast for sage/rose across all three states using OKLCH math (`oklch(L% C H)` lets us check for `L` contrast ratios). Keyboard shortcuts documented on an `/about` page. ARIA labels for state glyphs ("🌸 in bloom — learning this word"). `prefers-reduced-motion` swaps the flip animation for a crossfade.
-- **Onboarding (resolves SpecFlow §5):** if localStorage is empty and words exist, show a one-screen intro: "Welcome to your garden. You have N seedlings waiting." Set `onboardingSeenAt` in localStorage.
-- **LocalStorage schema version & migration stub:** document the v1 shape; add a `migrate(fromVersion, toVersion)` function skeleton so v2 changes don't silently corrupt data.
-- **Dev tooling:** `pnpm import` (imports data), `pnpm import:refresh-covers` (force cover refresh), `pnpm dev`, `pnpm build`, `pnpm preview`.
-- **README.md** with setup, data-privacy note, the "local-only" statement in bold.
-- **docs/solutions/**: a first entry capturing real gotchas encountered (Kindle BOM, orphaned LOOKUPS, sideloaded books).
+Shipped in this phase:
+- `/about` page with three-state legend, rating guide, keyboard shortcuts, privacy statement, and a rhythm note.
+- First-visit onboarding screen in `Practice.svelte` — greets with the seedling count, shows the three states, stamps `literary-garden:onboarding-seen-at:v1` with an ISO timestamp on dismiss. Gated so it renders *before* the session-length picker to avoid double-render.
+- ARIA labels on state glyphs already present on `WordCard.svelte:235` (`{word}, {masteryLabel[state]}. Press space to flip.`); aria-hidden on decorative glyphs verified.
+- `prefers-reduced-motion` branches in `global.css`, `WordCard.svelte`, and `index.astro` shipped during Phase 2–3.
+- `progress.ts` `migrate(from, to)` function extracted — v1 returns itself; unknown versions archive + reset. Call site in `readStore` writes the migrated store back so the migration is idempotent.
+- `package.json` scripts: `seed`, `seed:refresh-covers`, `seed:refresh-definitions`, `seed:refresh`, `seed:offline`, plus `dev`/`build`/`preview`/`check`.
+- README polished: privacy statement in bold ("This is a local-first, single-device site"), dev-scripts table, keyboard-shortcuts table, project-status section.
+- `docs/solutions/2026-04-22-kindle-import-gotchas.md` captures twelve real gotchas from Phases 1–3: `pnpm import` lockfile delete, `.astro` cache staleness, sideloaded title author-duplication, orphaned LOOKUPS handling, dictionaryapi stem-preferred lookup, Open Library grey-PNG size-check, rate-limit practice, `<svelte:window>` can't be nested in `{#if}`, CSS `perspective` on parent for 3D flip, `astro:content` `z` deprecation, `<article role="button">` a11y lint, `client:visible` hydration cost profile.
+
+Gotchas captured during Phase 4:
+- When a derived flag depends on another derived flag (onboarding gates the length picker), the downstream derived must explicitly exclude the upstream case (`&& !needsOnboarding`) — otherwise both render simultaneously on first mount.
+- Astro 6 generates a default identifier matching the filename; importing a component with the same name into `practice.astro` / `garden.astro` collides (pre-existing; unrelated to Phase 4 edits but noted).
 
 **Exit criteria for v1:** the user can, on a fresh clone of the repo, `pnpm install && pnpm import && pnpm dev`, and immediately enter their daily practice with their 166 seedlings.
 

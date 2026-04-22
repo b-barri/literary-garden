@@ -9,7 +9,10 @@
     "preview": "astro preview",
     "check": "astro check",
     "seed": "tsx scripts/import.ts",
-    "seed:refresh-covers": "tsx scripts/import.ts --refresh-covers"
+    "seed:refresh-covers": "tsx scripts/import.ts --refresh-covers",
+    "seed:refresh-definitions": "tsx scripts/import.ts --refresh-definitions",
+    "seed:refresh": "tsx scripts/import.ts --refresh",
+    "seed:offline": "tsx scripts/import.ts --offline"
   },
   "engines": {
     "node": ">=20"

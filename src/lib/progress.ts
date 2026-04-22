@@ -44,17 +44,32 @@ function readStore(): Store {
   const raw = window.localStorage.getItem(STORAGE_KEY);
   if (!raw) return emptyStore();
   try {
-    const parsed = JSON.parse(raw) as Store;
-    if (parsed.version !== SCHEMA_VERSION) {
-      // Migration stub — future versions plug in here. For v1 we archive and reset.
-      archiveCorruptStore(raw, `unknown-version-${parsed.version}`);
-      return emptyStore();
+    const parsed = JSON.parse(raw) as { version: number; cards?: unknown };
+    if (parsed.version === SCHEMA_VERSION) return parsed as Store;
+    const migrated = migrate(parsed, parsed.version, SCHEMA_VERSION);
+    if (migrated) {
+      writeStore(migrated);
+      return migrated;
     }
-    return parsed;
+    archiveCorruptStore(raw, `unknown-version-${parsed.version}`);
+    return emptyStore();
   } catch {
     archiveCorruptStore(raw, "parse-error");
     return emptyStore();
   }
+}
+
+/**
+ * Schema migration. Returns the migrated store, or null if the jump cannot
+ * be made safely (caller will archive + reset).
+ *
+ * v1 is the only version today. When v2 lands, add a case like:
+ *   if (from === 1 && to === 2) return migrateV1toV2(raw);
+ * Chain intermediate steps rather than jumping so each migration stays small.
+ */
+function migrate(_raw: unknown, from: number, to: number): Store | null {
+  if (from === to) return _raw as Store;
+  return null;
 }
 
 function writeStore(store: Store): void {

@@ -1,0 +1,366 @@
+---
+import BaseLayout from "~/layouts/BaseLayout.astro";
+import Nav from "~/components/Nav.astro";
+---
+
+<BaseLayout title="About · Bhavya's Literary Garden" fullBleed={true}>
+  <div class="page watercolor-paper">
+    <Nav currentPath={Astro.url.pathname} />
+
+    <div class="about-inner">
+      <header class="page-head">
+        <p class="eyebrow">a gardener's notes</p>
+        <h1>about this garden</h1>
+        <p class="subtitle">
+          a private, botanically-illustrated home for the words and passages I've
+          collected on my Kindle.
+        </p>
+      </header>
+
+      <div class="flourish header-flourish" aria-hidden="true">
+        <span></span><span class="ornament">✦</span><span></span>
+      </div>
+
+      <section class="prose">
+        <h2>the three states</h2>
+        <p>
+          Every word begins as a seedling. Review it, and if you know it, it
+          blooms. Keep knowing it, and after roughly three weeks of stable recall,
+          it presses flat &mdash; the pressed flower you turn back to on rainy
+          afternoons.
+        </p>
+        <dl class="states" aria-label="the three mastery states">
+          <div class="state state-seedling">
+            <dt>
+              <span class="glyph" aria-hidden="true">🌱</span>
+              <span>seedling</span>
+            </dt>
+            <dd>
+              a new word, never reviewed. ink-outline only, pale cream background.
+            </dd>
+          </div>
+          <div class="state state-bloom">
+            <dt>
+              <span class="glyph" aria-hidden="true">🌸</span>
+              <span>in bloom</span>
+            </dt>
+            <dd>
+              actively learning. full-colour illustration, cream background, sage
+              accents.
+            </dd>
+          </div>
+          <div class="state state-pressed">
+            <dt>
+              <span class="glyph" aria-hidden="true">🏵️</span>
+              <span>pressed</span>
+            </dt>
+            <dd>
+              mature &mdash; stable for 21+ days. parchment backdrop, gold hairline,
+              sepia wash. Lives in <a href="/garden">the garden</a>.
+            </dd>
+          </div>
+        </dl>
+      </section>
+
+      <section class="prose">
+        <h2>rating a card</h2>
+        <p>
+          Passive recall, three buttons. There is no &ldquo;easy&rdquo; &mdash;
+          the premise is that if you're here, you're revisiting, not sprinting.
+        </p>
+        <ul class="ratings-legend">
+          <li>
+            <span class="r r-again">didn't know</span>
+            <span class="sep" aria-hidden="true">—</span>
+            <span>the card returns quickly.</span>
+          </li>
+          <li>
+            <span class="r r-hard">blurry, had to think</span>
+            <span class="sep" aria-hidden="true">—</span>
+            <span>a shorter interval.</span>
+          </li>
+          <li>
+            <span class="r r-good">knew it instantly</span>
+            <span class="sep" aria-hidden="true">—</span>
+            <span>the interval grows.</span>
+          </li>
+        </ul>
+      </section>
+
+      <section class="prose">
+        <h2>keyboard shortcuts</h2>
+        <p>
+          The whole daily ritual is reachable without the mouse.
+        </p>
+        <dl class="shortcuts">
+          <div>
+            <dt><kbd>Space</kbd> <span class="or">or</span> <kbd>Enter</kbd></dt>
+            <dd>flip the card</dd>
+          </div>
+          <div>
+            <dt><kbd>1</kbd></dt>
+            <dd>rate &ldquo;didn't know&rdquo;</dd>
+          </div>
+          <div>
+            <dt><kbd>2</kbd></dt>
+            <dd>rate &ldquo;blurry&rdquo;</dd>
+          </div>
+          <div>
+            <dt><kbd>3</kbd></dt>
+            <dd>rate &ldquo;knew it&rdquo;</dd>
+          </div>
+          <div>
+            <dt>swipe <kbd>←</kbd> / <kbd>→</kbd></dt>
+            <dd>on touch &mdash; didn't know / knew it</dd>
+          </div>
+        </dl>
+      </section>
+
+      <section class="prose">
+        <h2>privacy</h2>
+        <p>
+          <strong>This is a local-first, single-device site.</strong> Your
+          <code>vocab.db</code> and clippings stay on your laptop. Nothing is
+          uploaded, tracked, or synced. No analytics, no third-party fonts served
+          from a CDN at runtime, no external calls while you practise. Definitions
+          and covers are fetched once at import time and bundled into the built
+          site.
+        </p>
+        <p class="caveat">
+          If you deploy this to the open internet, you are publishing your private
+          reading history &mdash; don't.
+        </p>
+      </section>
+
+      <section class="prose">
+        <h2>rhythm</h2>
+        <p>
+          Five new seedlings a day, with up to ten due reviews. The draw is
+          deterministic within a day, so a refresh doesn't reshuffle. When there's
+          nothing due and no new seedlings, the garden rests &mdash; come back
+          tomorrow.
+        </p>
+      </section>
+    </div>
+  </div>
+</BaseLayout>
+
+<style>
+  .page { min-height: 100dvh; }
+
+  .about-inner {
+    max-width: 44rem;
+    margin: 0 auto;
+    padding: 0 1.5rem 4rem;
+  }
+
+  .page-head {
+    text-align: center;
+    margin: 2rem 0 0.5rem;
+  }
+  .eyebrow {
+    font-family: var(--font-display);
+    font-style: italic;
+    font-size: 0.9rem;
+    color: var(--color-sage-700);
+    letter-spacing: 0.08em;
+  }
+  h1 {
+    font-family: var(--font-display);
+    font-size: clamp(2rem, 6vw, 3rem);
+    color: var(--color-sage-900);
+    margin: 0.25rem 0 0.5rem;
+    letter-spacing: -0.01em;
+  }
+  .subtitle {
+    font-family: var(--font-display);
+    font-style: italic;
+    font-size: 0.95rem;
+    color: var(--color-sepia);
+    max-width: 32rem;
+    margin: 0 auto;
+  }
+
+  .header-flourish {
+    margin: 0.5rem auto 2.5rem;
+    max-width: 18rem;
+  }
+
+  .prose {
+    margin: 2rem auto;
+    max-width: 36rem;
+    line-height: 1.65;
+    color: var(--color-ink);
+  }
+  .prose h2 {
+    font-family: var(--font-display);
+    font-size: 1.35rem;
+    color: var(--color-sage-900);
+    margin: 0 0 0.5rem;
+    letter-spacing: -0.005em;
+  }
+  .prose p {
+    margin: 0.5rem 0;
+    font-size: 0.98rem;
+  }
+  .prose a {
+    color: var(--color-sage-700);
+    border-bottom: 1px solid currentColor;
+  }
+  .prose code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 0.88em;
+    background: oklch(0.93 0.04 145 / 0.35);
+    padding: 0.05em 0.3em;
+    border-radius: 3px;
+  }
+  .prose .caveat {
+    font-style: italic;
+    color: var(--color-sepia);
+    font-size: 0.9rem;
+  }
+
+  /* --- States legend --- */
+  .states {
+    display: grid;
+    gap: 0.75rem;
+    margin: 1rem 0 0.25rem;
+    padding: 0;
+  }
+  .state {
+    display: grid;
+    grid-template-columns: 10rem 1fr;
+    align-items: baseline;
+    gap: 1rem;
+    padding: 0.6rem 0.9rem;
+    border-radius: 0.35rem;
+    border: 1px solid oklch(0.82 0.06 145 / 0.45);
+  }
+  .state-seedling {
+    background: oklch(0.97 0.02 85 / 0.6);
+  }
+  .state-bloom {
+    background: var(--color-cream);
+    border-color: oklch(0.62 0.08 145 / 0.45);
+  }
+  .state-pressed {
+    background: oklch(0.94 0.04 85 / 0.65);
+    border-color: oklch(0.72 0.08 70 / 0.55);
+  }
+  .state dt {
+    display: flex;
+    align-items: baseline;
+    gap: 0.5rem;
+    font-family: var(--font-display);
+    font-style: italic;
+    color: var(--color-sage-900);
+    font-size: 1rem;
+  }
+  .state dt .glyph {
+    font-style: normal;
+    font-size: 1.1rem;
+  }
+  .state dd {
+    margin: 0;
+    font-size: 0.9rem;
+    color: var(--color-ink);
+  }
+  @media (max-width: 520px) {
+    .state {
+      grid-template-columns: 1fr;
+      gap: 0.2rem;
+    }
+  }
+
+  /* --- Ratings legend --- */
+  .ratings-legend {
+    list-style: none;
+    padding: 0;
+    margin: 0.75rem 0;
+    display: grid;
+    gap: 0.35rem;
+  }
+  .ratings-legend li {
+    display: flex;
+    gap: 0.6rem;
+    align-items: baseline;
+    flex-wrap: wrap;
+    font-size: 0.95rem;
+  }
+  .ratings-legend .r {
+    font-family: var(--font-display);
+    font-style: italic;
+    padding: 0.08rem 0.55rem;
+    border-radius: 3px;
+    font-size: 0.88rem;
+  }
+  .ratings-legend .r-again {
+    background: oklch(0.85 0.06 20 / 0.35);
+    color: oklch(0.32 0.08 20);
+  }
+  .ratings-legend .r-hard {
+    background: oklch(0.93 0.06 85 / 0.55);
+    color: oklch(0.35 0.06 70);
+  }
+  .ratings-legend .r-good {
+    background: oklch(0.93 0.04 145 / 0.6);
+    color: var(--color-sage-900);
+  }
+  .ratings-legend .sep {
+    color: var(--color-sepia);
+    opacity: 0.6;
+  }
+
+  /* --- Shortcuts --- */
+  .shortcuts {
+    display: grid;
+    gap: 0.45rem;
+    margin: 0.75rem 0 0;
+    padding: 0.75rem 1rem;
+    background: oklch(0.97 0.02 85 / 0.55);
+    border: 1px solid oklch(0.82 0.06 145 / 0.35);
+    border-radius: 0.4rem;
+  }
+  .shortcuts > div {
+    display: grid;
+    grid-template-columns: 13rem 1fr;
+    gap: 0.75rem;
+    align-items: baseline;
+    font-size: 0.92rem;
+  }
+  .shortcuts dt {
+    font-family: var(--font-body);
+    color: var(--color-sage-900);
+    display: flex;
+    gap: 0.35rem;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+  .shortcuts dd {
+    margin: 0;
+    color: var(--color-ink);
+    font-style: italic;
+  }
+  .shortcuts .or {
+    font-size: 0.8rem;
+    color: var(--color-sepia);
+    font-style: italic;
+  }
+  kbd {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 0.78rem;
+    background: var(--color-cream);
+    border: 1px solid oklch(0.72 0.08 70 / 0.55);
+    border-bottom-width: 2px;
+    color: var(--color-sage-900);
+    padding: 0.08rem 0.4rem;
+    border-radius: 3px;
+    line-height: 1.1;
+  }
+  @media (max-width: 520px) {
+    .shortcuts > div {
+      grid-template-columns: 1fr;
+      gap: 0.15rem;
+    }
+  }
+</style>
