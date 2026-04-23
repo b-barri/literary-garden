@@ -283,16 +283,25 @@ async function enrichDefinitions(words: Word[]): Promise<DefinitionCache> {
     : readJson<DefinitionCache>(DEFINITIONS_PATH, {});
   const overrides = readDefinitionOverrides();
 
-  // Manual overrides take priority over a cached null — so a user who
-  // writes a definition for "Dorchester" today sees it applied on the
-  // next seed without needing --refresh-definitions.
+  // Manual overrides always win over whatever's cached — so a user can
+  // (a) fill in a null where the API had no entry and (b) correct a
+  // misleading API result by hand, without needing --refresh-definitions.
+  // The cache's fetchedAt is refreshed each time the override is re-read
+  // so edits to the overrides file are visible on the next seed.
   let overridesApplied = 0;
   for (const word of words) {
     const manual = overrideFor(word, overrides);
     if (!manual) continue;
     const existing = cache[word.id];
-    const shouldReplace = existing === null || existing === undefined;
-    if (shouldReplace) {
+    const isSameOverride =
+      existing &&
+      existing.meanings.length === manual.meanings.length &&
+      existing.meanings.every(
+        (m, i) =>
+          m.definition === manual.meanings[i].definition &&
+          m.partOfSpeech === manual.meanings[i].partOfSpeech,
+      );
+    if (!isSameOverride) {
       cache[word.id] = manual;
       overridesApplied++;
     }
