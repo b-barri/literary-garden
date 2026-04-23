@@ -2,13 +2,7 @@
 
 A digitized intellectual orbit — a private, botanically-illustrated vocabulary practice and highlights scrapbook, grown from your own Kindle reading.
 
-<!--
-  Hero media slot. When you have one, drop the file at public/docs/hero.png
-  and uncomment the line below. The Pressed Album export from /garden
-  (the "save as image" button) makes a solid hero.
-
-  ![The Literary Garden — pressed words from a year's reading](public/docs/hero.png)
--->
+![The Scrapbook bed — spine carousel of recent reads with the focused book bloomed open](public/docs/scrapbook.png)
 
 ---
 
@@ -32,6 +26,24 @@ A digitized intellectual orbit — a private, botanically-illustrated vocabulary
 > Everyone has their own intellectual orbit — the shape of thought inherited from family, schooling, the city of one's youth. To live is to widen that orbit. Reading is the humblest route: a book is a letter from a stranger who has lived what you have not. This garden is the digital form of the orbit — pressed, tended, revisited, and sometimes shared as a postcard.
 
 There are three states a word can be in: **seedling** (never reviewed), **in bloom** (actively learning), **pressed** (21+ days of proven memory). The garden visualizes where each of your words is, and nudges you to return daily.
+
+## A glimpse
+
+The home page — a cameo, a title, and a "Dearest Gentle Reader" letter in the spirit of the garden's aesthetic (edit the letter in `src/pages/index.astro` to your voice after cloning):
+
+![Home page — the Dearest Gentle Reader letter and brand cameo](public/docs/home.png)
+
+Daily practice (the **words bed**) — flip a botanical card to rate your memory; the word settles into its FSRS interval and eventually presses:
+
+![Words bed — practice card with 'monasticism' from Outline by Rachel Cusk](public/docs/words-bed.png)
+
+The **garden** — an isometric plot that grows over days, weeks, months, and years as you press words:
+
+![Garden — isometric plot with plants growing over a week in April](public/docs/garden.png)
+
+The **scrapbook** share flow — pick any highlight, turn it into a 1080×1350 social-ready PNG with your personal wax-seal stamp:
+
+![Share modal — quote card preview with the wax seal stamp, download and share buttons](public/docs/share-modal.png)
 
 ## Getting your Kindle data (Mac)
 
