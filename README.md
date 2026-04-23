@@ -3,12 +3,12 @@
 A digitized intellectual orbit — a private, botanically-illustrated vocabulary practice and highlights scrapbook, grown from your own Kindle reading.
 
 <!--
-  Hero media slot. Drop your own preferred hero into public/docs/ and it
-  will render below. If the file is missing, the image link just shows
-  broken alt text — no build failure. The Pressed Album export from the
-  /garden page makes a solid hero.
+  Hero media slot. When you have one, drop the file at public/docs/hero.png
+  and uncomment the line below. The Pressed Album export from /garden
+  (the "save as image" button) makes a solid hero.
+
+  ![The Literary Garden — pressed words from a year's reading](public/docs/hero.png)
 -->
-![The Literary Garden — pressed words from a year's reading](public/docs/hero.png)
 
 ---
 
@@ -43,11 +43,12 @@ There are three states a word can be in: **seedling** (never reviewed), **in blo
    - `/Volumes/Kindle/documents/My Clippings.txt` → **optional** (powers the scrapbook tab)
 
 <!--
-  Media slot: screenshot of Finder showing the Kindle volume + the
-  hidden /system/vocabulary/ path. Drop a PNG at public/docs/kindle-walkthrough.png
-  to replace the broken-link placeholder.
+  Media slot: Finder screenshot showing the Kindle volume + the hidden
+  /system/vocabulary/ path. Drop the PNG at public/docs/kindle-walkthrough.png
+  and uncomment the line below.
+
+  ![Finder showing the Kindle volume and vocab.db location](public/docs/kindle-walkthrough.png)
 -->
-![Finder showing the Kindle volume and vocab.db location](public/docs/kindle-walkthrough.png)
 
 **Nothing leaves your Mac.** `data/raw/` and `public/covers/` are both gitignored. A pre-commit hook blocks any accidental `git add -f` on personal paths.
 
@@ -63,11 +64,12 @@ pnpm dev                                            # Astro at http://localhost:
 **Edit `src/site.config.ts`** with your name and title. `pnpm install` auto-copies this file from `src/site.config.example.ts` the first time, so you don't have to. Subsequent installs leave your edits alone. The file is gitignored so your values stay local — the template ships with only the example committed.
 
 <!--
-  Media slot: screenshot of an editor showing the handful of fields in
-  site.config.ts (ownerName, siteTitle, tagline, socialImage, stampImage)
-  with example values. Drop at public/docs/site-config-edit.png.
+  Media slot: editor screenshot showing the fields in site.config.ts
+  (ownerName, siteTitle, tagline, socialImage, stampImage) with example
+  values highlighted. Drop at public/docs/site-config-edit.png and uncomment.
+
+  ![Editing site.config.ts — five fields](public/docs/site-config-edit.png)
 -->
-![Editing site.config.ts — five fields](public/docs/site-config-edit.png)
 
 **Optional personalization:**
 - Drop your own `public/og-image.png` (1200×630) for LinkedIn/Twitter/Facebook link previews.
