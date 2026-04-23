@@ -31,17 +31,66 @@
     ),
   );
 
-  // Smoothly centre the focused spine. Custom easing is handled by CSS on
-  // the flex children; we only need to scroll the right item into view.
+  // Smoothly centre the focused spine. scrollIntoView would read the book's
+  // position at t=0, but the neighbour collapsing from open-width to
+  // spine-width shifts every book after it by (open-w - spine-w) over 620ms,
+  // so the scroll would end up aimed at a stale target and the book drifts
+  // off-centre as the layout settles. Aim at the RESTING layout instead
+  // (computed from CSS tokens) so the scroll lands where the book actually
+  // ends up after the hinge.
   $effect(() => {
     if (!scroller) return;
-    const el = scroller.querySelector<HTMLButtonElement>(
-      `button[data-index="${focusedIndex}"]`,
-    );
-    if (!el) return;
+    const idx = focusedIndex;
+
+    const styles = getComputedStyle(scroller);
+    const spineW = parseFloat(styles.getPropertyValue("--spine-w")) || 42;
+    const openW = parseFloat(styles.getPropertyValue("--book-open-w")) || 210;
+    const gap = parseFloat(styles.getPropertyValue("--gap")) || 0;
+    // Origin = first book's left edge in scroll-space. Using the rendered
+    // rect (not .endcap.offsetWidth) keeps this correct regardless of how
+    // the endcaps are placed in DOM — and stays accurate even if the first
+    // book is currently focused, since its left edge doesn't move, only
+    // its width.
+    const first = scroller.querySelector<HTMLElement>('button[data-index="0"]');
+    const sRect = scroller.getBoundingClientRect();
+    const originX = first
+      ? first.getBoundingClientRect().left - sRect.left + scroller.scrollLeft
+      : 0;
+    const leftEdge = originX + idx * (spineW + gap);
+    const bookCentre = leftEdge + openW / 2;
+    const target = Math.max(0, bookCentre - scroller.clientWidth / 2);
+
+    if (Math.abs(target - scroller.scrollLeft) < 0.5) return;
+
+    // scroll-snap: mandatory re-pins at scrollend, which fights the smooth
+    // scroll when snap points are moving mid-transition. Suspend it; we
+    // land exactly on the snap point anyway, then restore once the scroll
+    // has settled.
+    const prevSnap = scroller.style.scrollSnapType;
+    scroller.style.scrollSnapType = "none";
     programmaticScrollInFlight = true;
-    el.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "center" });
-    setTimeout(() => { programmaticScrollInFlight = false; }, 620);
+
+    scroller.scrollTo({ left: target, behavior: "smooth" });
+
+    const restore = () => {
+      if (!scroller) return;
+      scroller.style.scrollSnapType = prevSnap;
+      programmaticScrollInFlight = false;
+    };
+    const onEnd = () => { scroller?.removeEventListener("scrollend", onEnd); restore(); };
+    scroller.addEventListener("scrollend", onEnd);
+    // Belt-and-braces: some browsers throttle scrollend on fast successive
+    // scrolls. A matching 620ms timer guarantees snap gets restored.
+    const fallback = window.setTimeout(() => {
+      scroller?.removeEventListener("scrollend", onEnd);
+      restore();
+    }, 700);
+
+    return () => {
+      scroller?.removeEventListener("scrollend", onEnd);
+      window.clearTimeout(fallback);
+      restore();
+    };
   });
 
   $effect(() => {
@@ -141,6 +190,9 @@
     bind:this={scroller}
     onkeydown={handleKey}
   >
+    <!-- Spacer before the first book so it can centre in the viewport. -->
+    <div class="endcap left" aria-hidden="true"></div>
+
     {#each books as book, i (book.id)}
       {@const palette = resolved[i] ?? { bg: "var(--color-leather-dark)", fg: "var(--color-cream)" }}
       {@const isFocused = i === focusedIndex}
@@ -178,8 +230,7 @@
       </button>
     {/each}
 
-    <!-- Spacers to let the first & last book centre in the viewport -->
-    <div class="endcap left" aria-hidden="true"></div>
+    <!-- Spacer after the last book so it can centre in the viewport. -->
     <div class="endcap right" aria-hidden="true"></div>
   </div>
 
