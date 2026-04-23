@@ -4,13 +4,21 @@ import Nav from "~/components/Nav.astro";
 import PracticeIsland from "~/components/Practice.svelte";
 import { siteConfig } from "~/site.config";
 import { getCollection } from "astro:content";
+import { existsSync, readFileSync } from "node:fs";
+import { resolve } from "node:path";
 
+// Read definitions via fs instead of dynamic import, so a fresh clone
+// can `pnpm build` before `pnpm seed` without Rollup failing to resolve
+// a missing JSON file. The file exists once seed has run; pre-seed, the
+// practice page just shows words without definitions.
 let definitions: Record<string, any> = {};
-try {
-  const mod = await import("../../data/processed/definitions.json");
-  definitions = (mod.default ?? mod) as Record<string, any>;
-} catch {
-  // definitions.json not yet generated — run `pnpm seed` first
+const definitionsPath = resolve("data/processed/definitions.json");
+if (existsSync(definitionsPath)) {
+  try {
+    definitions = JSON.parse(readFileSync(definitionsPath, "utf-8"));
+  } catch {
+    // Corrupt JSON — fall through to empty definitions rather than crash.
+  }
 }
 
 const wordEntries = await getCollection("words");

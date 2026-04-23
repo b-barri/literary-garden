@@ -15,7 +15,8 @@
     "seed:refresh": "tsx scripts/import.ts --refresh",
     "seed:offline": "tsx scripts/import.ts --offline",
     "reseed": "tsx scripts/import.ts && rm -rf .astro && echo '✓ reseeded. restart pnpm dev to pick up changes.'",
-    "prepare": "simple-git-hooks",
+    "init:config": "test -f src/site.config.ts || cp src/site.config.example.ts src/site.config.ts",
+    "prepare": "simple-git-hooks && pnpm run init:config",
     "deploy:prod": "pnpm seed && pnpm build && vercel build --prod && vercel deploy --prebuilt --prod"
   },
   "simple-git-hooks": {

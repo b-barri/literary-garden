@@ -54,14 +54,13 @@ There are three states a word can be in: **seedling** (never reviewed), **in blo
 ## Setup
 
 ```sh
-pnpm install
-cp src/site.config.example.ts src/site.config.ts   # then edit with your name
+pnpm install                                        # also creates src/site.config.ts (see below)
 # copy your Kindle files per the walkthrough above
 pnpm seed                                           # process vocab.db + clippings
 pnpm dev                                            # Astro at http://localhost:4321
 ```
 
-**Edit `src/site.config.ts`** with your name and title. This file is gitignored so your values stay local — the template ships with only `site.config.example.ts` committed.
+**Edit `src/site.config.ts`** with your name and title. `pnpm install` auto-copies this file from `src/site.config.example.ts` the first time, so you don't have to. Subsequent installs leave your edits alone. The file is gitignored so your values stay local — the template ships with only the example committed.
 
 <!--
   Media slot: screenshot of an editor showing the handful of fields in
