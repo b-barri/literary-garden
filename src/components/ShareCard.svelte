@@ -211,14 +211,14 @@
   }
   .cover-frame {
     flex: 0 0 auto;
-    width: 120px;
-    height: 180px;
-    border-radius: 2px;
+    width: 200px;
+    height: 300px;
+    border-radius: 3px;
     overflow: hidden;
     box-shadow:
       0 1px 0 rgba(255, 255, 255, 0.5) inset,
-      0 14px 28px rgba(0, 0, 0, 0.22),
-      0 4px 8px rgba(0, 0, 0, 0.14);
+      0 20px 40px rgba(0, 0, 0, 0.24),
+      0 6px 12px rgba(0, 0, 0, 0.16);
     background: var(--color-cream);
   }
   .cover {
@@ -420,8 +420,8 @@
 
   .stamp-holder {
     flex: 0 0 auto;
-    width: 220px;
-    height: 220px;
+    width: 300px;
+    height: 300px;
     position: relative;
   }
   .stamp {

@@ -75,7 +75,7 @@
     try {
       const result = await sharePNG(cardEl, {
         title: `from ${book.title}`,
-        text: `a passage from ${book.title} by ${book.authors}`,
+        text: "i thought this would resonate with you",
         filename,
       });
       // Remember whether Web Share actually fired, so we can tell the user

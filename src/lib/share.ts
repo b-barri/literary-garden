@@ -31,11 +31,34 @@ export interface ShareOptions {
   filename?: string;
 }
 
+// Wait for every <img> inside the node to finish decoding before the
+// foreignObject snapshot runs. html-to-image inlines images by re-reading
+// their bitmap into the cloned DOM — if the originals haven't resolved
+// (or are mid-fetch because cacheBust appended a query param), the
+// snapshot captures a blank box. decode() resolves when the image has
+// pixels ready to paint; broken images settle by catch-and-continue so
+// one missing cover doesn't tank the whole share.
+async function waitForImages(node: HTMLElement): Promise<void> {
+  const imgs = Array.from(node.querySelectorAll<HTMLImageElement>("img"));
+  await Promise.all(
+    imgs.map((img) => {
+      if (img.complete && img.naturalWidth > 0) return Promise.resolve();
+      return img.decode().catch(() => undefined);
+    }),
+  );
+}
+
 async function renderNodeToBlob(node: HTMLElement): Promise<Blob> {
+  await waitForImages(node);
   const blob = await toBlob(node, {
     // 2× for retina; card is 1080×1350 CSS, becomes 2160×2700 PNG.
     pixelRatio: 2,
-    cacheBust: true,
+    // cacheBust: false — the images were just awaited above with their
+    // real URLs; appending `?t=<now>` would force the browser to refetch
+    // during foreignObject serialization, and if that fetch hasn't
+    // resolved yet the resulting PNG has blank images where the cover
+    // and stamp should be.
+    cacheBust: false,
     // Use the card's own background; solid fallback for transparency.
     backgroundColor: undefined,
     // Keep all fonts — fall back to serving-side defaults if a CSS font
