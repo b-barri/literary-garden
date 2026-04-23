@@ -70,6 +70,17 @@ html {
 body {
   min-height: 100dvh;
   overscroll-behavior: none;
+  /* iOS Safari rubber-band on horizontal swipe can briefly expose the
+     browser's default white behind the watercolor-paper div. Matching
+     body to the page's cream keeps the bounce area in-palette. */
+  background: var(--color-cream);
+}
+
+/* Block page-level horizontal scroll. The .scroller inside the scrapbook
+   owns horizontal scroll for its books; the document itself never should,
+   and allowing it invites iOS to rubber-band the whole page sideways. */
+html, body {
+  overflow-x: clip;
 }
 
 h1, h2, h3, .font-display {

@@ -65,7 +65,11 @@ const MONTHS: Record<string, number> = {
   july: 7, august: 8, september: 9, october: 10, november: 11, december: 12,
 };
 
-const TITLE_SUFFIX_DENYLIST = /^(z-?library|epub|retail|kindle[\s-]?edition|ebook|pdf|mobi|goodreads|libgen)$/i;
+// Library/store noise lurking inside trailing `(...)` groups. Substring match
+// (not anchored) so compound groups like `(z-library.sk, 1lib.sk, z-lib.sk)`
+// get caught — the `.sk` TLDs and digits in the domain names would otherwise
+// slip past an anchored regex or trip the digit guard below.
+const TITLE_SUFFIX_DENYLIST = /\b(z-?lib(?:rary)?|1lib|bookslib|libgen|epub|retail|kindle[\s-]?edition|ebook|pdf|mobi|goodreads)\b/i;
 const CONTAINS_DIGIT_OR_ROMAN = /\d|^[ivxlcdm]+$/i;
 
 // ---------- Parser ----------
@@ -294,9 +298,22 @@ export function reconcileBook(
 /**
  * Normalize for equality comparison between clippings titles and vocab.db
  * titles. NFC + whitespace collapse + en-US case fold. See plan insight D-4.
+ *
+ * Also strips trailing `(...)` groups that don't look like volume markers,
+ * so that clippings-side "(Author)" or "(Z-Library)" suffixes don't block
+ * reconciling to a vocab.db entry whose cleanTitle already removed them.
+ * The digit-guard protects "Foundation (Vol 2)" from merging with
+ * "Foundation (Vol 1)".
  */
 function normalizeForMatch(s: string): string {
-  return s.normalize("NFC").replace(/\s+/g, " ").trim().toLocaleLowerCase("en-US");
+  let stripped = s;
+  while (true) {
+    const m = stripped.match(/\s*\(([^()]+)\)\s*$/);
+    if (!m) break;
+    if (CONTAINS_DIGIT_OR_ROMAN.test(m[1].trim())) break;
+    stripped = stripped.slice(0, m.index).trim();
+  }
+  return stripped.normalize("NFC").replace(/\s+/g, " ").trim().toLocaleLowerCase("en-US");
 }
 
 /**
@@ -336,29 +353,42 @@ function cleanTitle(rawTitleLine: string, knownAuthors: Set<string>): { title: s
     if (!m) break;
     const inner = m[1].trim();
 
-    if (CONTAINS_DIGIT_OR_ROMAN.test(inner)) {
-      break;
-    }
     const innerNorm = inner.normalize("NFC").toLocaleLowerCase("en-US");
     const matchesAuthor = knownAuthors.has(innerNorm);
     const matchesDenylist = TITLE_SUFFIX_DENYLIST.test(innerNorm);
 
-    if (!matchesAuthor && !matchesDenylist) {
-      // Unknown paren group — might be the author on a book that isn't in
-      // vocab.db. Strip it once as the extracted author, but only if we
-      // haven't already captured one.
-      if (extractedAuthor === null) {
-        extractedAuthor = inner;
-        working = working.slice(0, m.index).trim();
-        continue;
-      }
+    // Library-suffix parens often contain their own digits (`1lib.sk`,
+    // `libgen.rs`) — denylist wins over the volume-marker guard. Only then
+    // does the digit guard apply, so real volumes like "(Vol 2)" survive.
+    if (!matchesDenylist && CONTAINS_DIGIT_OR_ROMAN.test(inner)) {
       break;
     }
 
-    if (matchesAuthor && extractedAuthor === null) {
-      extractedAuthor = inner;
+    if (matchesAuthor || matchesDenylist) {
+      // Strip known-author names and library noise silently. We don't
+      // treat matchesAuthor as "captured the author" because vocab.db
+      // sometimes stores the Kindle owner's name in its author field,
+      // which would then block extracting the actual author further up
+      // the chain ("Heart the Lover (Lily King) (Z-Library) (bhavya)").
+      working = working.slice(0, m.index).trim();
+      continue;
     }
-    working = working.slice(0, m.index).trim();
+
+    // Unknown paren group — the likeliest real author for a synthesized
+    // book. Strip once, track as extractedAuthor. If the same value
+    // appears again (Kindle exports like "... (Lily King) (z-lib) (Lily
+    // King)" do this), strip it silently too; otherwise bail so we don't
+    // over-eat a legitimate subtitle.
+    if (extractedAuthor === null) {
+      extractedAuthor = inner;
+      working = working.slice(0, m.index).trim();
+      continue;
+    }
+    if (innerNorm === extractedAuthor.normalize("NFC").toLocaleLowerCase("en-US")) {
+      working = working.slice(0, m.index).trim();
+      continue;
+    }
+    break;
   }
 
   return { title: working, author: extractedAuthor };
