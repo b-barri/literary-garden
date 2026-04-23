@@ -5,7 +5,10 @@
 #
 # POSIX /bin/sh — no bash-isms, runs under Windows Git Bash too.
 
-BLOCKED=$(git diff --cached --name-only | grep -E '^(data/raw/|data/processed/|public/covers/|My Clippings\.sdr/|book_cover/)' || true)
+BLOCKED=$(git diff --cached --name-only \
+  | grep -E '^(data/raw/|data/processed/|public/covers/|My Clippings\.sdr/|book_cover/)' \
+  | grep -vE '^public/covers/placeholders/' \
+  || true)
 
 if [ -n "$BLOCKED" ]; then
   printf '\n\033[1;31mBLOCKED by pre-commit: personal Kindle data must not be committed.\033[0m\n\n'

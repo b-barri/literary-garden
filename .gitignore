@@ -14,7 +14,15 @@ dist/
 # images in themselves, but the *filenames* still reveal your reading list.
 data/raw/
 data/processed/
-public/covers/
+# public/covers/* (not public/covers/) so we can re-include subdirs via
+# the pattern below — gitignore can't re-include files if the parent
+# directory itself is ignored.
+public/covers/*
+# Exception: the 4 botanical placeholder JPGs must ship with the template
+# (coverFallback.ts references /covers/placeholders/N.jpg for books that
+# don't resolve on Open Library or Google Books). Without these, every
+# cloner with a sideloaded/obscure book sees broken tiles in the garden.
+!public/covers/placeholders/
 vocabulary/
 *.kfx
 *.azw*
