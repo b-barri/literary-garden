@@ -116,6 +116,22 @@ interface CoverOverrides {
 }
 const COVER_OVERRIDES_PATH = resolve(ROOT, "data/raw/cover-overrides.json");
 
+// User-editable manual-definition overrides. Keyed by the canonical word
+// (case-insensitive) — the importer matches against both the raw Kindle
+// word and its stem. Lets the user supply definitions for proper nouns
+// ("Dorchester"), phrases the Kindle captured as "words" ("I know"), or
+// anything else dictionaryapi.dev doesn't index. The partial shape is
+// merged into a full WordDefinition at load time — only `meanings` is
+// required; phonetic defaults to null.
+interface DefinitionOverride {
+  phonetic?: string | null;
+  meanings: DefinitionMeaning[];
+}
+interface DefinitionOverrides {
+  [wordOrStem: string]: DefinitionOverride;
+}
+const DEFINITION_OVERRIDES_PATH = resolve(ROOT, "data/raw/definition-overrides.json");
+
 // ---------- Helpers ----------
 
 function isoFromKindleTimestamp(ms: number): string {
@@ -168,7 +184,7 @@ function cleanTitle(title: string): string {
 
 // ---------- Definition fetching ----------
 
-async function fetchDefinition(word: string): Promise<WordDefinition | null> {
+async function fetchDefinitionFromApi(word: string): Promise<WordDefinition | null> {
   const url = `https://api.dictionaryapi.dev/api/v2/entries/en/${encodeURIComponent(word)}`;
   try {
     const res = await fetch(url, {
@@ -211,10 +227,80 @@ async function fetchDefinition(word: string): Promise<WordDefinition | null> {
   }
 }
 
+// Candidate base forms to try when the Kindle-stored stem doesn't resolve.
+// The Kindle's built-in stemmer quietly fails on many derivational suffixes
+// (docility → docility, ephemerality → ephemerality, penumbral → penumbral),
+// which leaves dictionaryapi.dev returning 404 for forms it simply doesn't
+// index. Each transform below is a best-effort reverse-derivation toward a
+// common dictionary headword. Order matters — longer suffixes first so
+// "ingly" beats "ly". Preserves the original case for proper nouns that
+// happen to survive the list.
+function definitionCandidates(word: string): string[] {
+  const out: string[] = [word];
+  const lower = word.toLowerCase();
+  if (lower !== word) out.push(lower);
+
+  const rules: Array<[RegExp, string]> = [
+    [/ingly$/, "ing"],        // disconcertingly → disconcerting
+    [/edly$/, "ed"],          // reportedly → reported
+    [/ly$/, ""],               // quickly → quick
+    [/ness$/, ""],             // lonesomeness → lonesome
+    [/ism$/, ""],              // monasticism → monastic (then → monastery? keep simple)
+    [/ality$/, "al"],          // ephemerality → ephemeral
+    [/acity$/, "acious"],      // tenacity → tenacious
+    [/ocity$/, "ocious"],      // precocity → precocious
+    [/icity$/, "ic"],          // ethnicity → ethnic
+    [/ity$/, "e"],             // docility → docile
+    [/ence$/, "ent"],          // putrescence → putrescent
+    [/ance$/, "ant"],          // radiance → radiant
+    [/al$/, "a"],              // penumbral → penumbra
+    [/ic$/, ""],               // historic → histor- (weak, tried last)
+  ];
+  for (const [re, replacement] of rules) {
+    if (re.test(lower)) {
+      const base = lower.replace(re, replacement);
+      if (base && base !== lower && !out.includes(base)) out.push(base);
+    }
+  }
+  return out;
+}
+
+async function fetchDefinition(word: string): Promise<WordDefinition | null> {
+  const candidates = definitionCandidates(word);
+  for (let i = 0; i < candidates.length; i++) {
+    const attempt = candidates[i];
+    const def = await fetchDefinitionFromApi(attempt);
+    if (def) return def;
+    // Be polite between fallback attempts too.
+    if (i < candidates.length - 1) await sleep(300);
+  }
+  return null;
+}
+
 async function enrichDefinitions(words: Word[]): Promise<DefinitionCache> {
   const cache: DefinitionCache = REFRESH_DEFINITIONS
     ? {}
     : readJson<DefinitionCache>(DEFINITIONS_PATH, {});
+  const overrides = readDefinitionOverrides();
+
+  // Manual overrides take priority over a cached null — so a user who
+  // writes a definition for "Dorchester" today sees it applied on the
+  // next seed without needing --refresh-definitions.
+  let overridesApplied = 0;
+  for (const word of words) {
+    const manual = overrideFor(word, overrides);
+    if (!manual) continue;
+    const existing = cache[word.id];
+    const shouldReplace = existing === null || existing === undefined;
+    if (shouldReplace) {
+      cache[word.id] = manual;
+      overridesApplied++;
+    }
+  }
+  if (overridesApplied > 0) {
+    console.log(`  ✎ applied ${overridesApplied} manual definition override(s)`);
+    writeJson(DEFINITIONS_PATH, cache);
+  }
 
   if (SKIP_NETWORK) {
     console.log(`  ↷ skipping definition fetch (--offline) · ${Object.keys(cache).length} cached`);
@@ -391,6 +477,41 @@ function readCoverOverrides(): CoverOverrides {
   } catch {
     return {};
   }
+}
+
+// Load the user's manual definition overrides. Keys are matched
+// case-insensitively against both the raw word and its stem, so the user
+// can write "Dorchester" or "dorchester" and either hits.
+function readDefinitionOverrides(): DefinitionOverrides {
+  if (!existsSync(DEFINITION_OVERRIDES_PATH)) return {};
+  try {
+    const parsed = JSON.parse(readFileSync(DEFINITION_OVERRIDES_PATH, "utf-8"));
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return {};
+    const normalised: DefinitionOverrides = {};
+    for (const [key, val] of Object.entries(parsed)) {
+      if (!val || typeof val !== "object" || !Array.isArray((val as any).meanings)) continue;
+      normalised[key.toLowerCase()] = val as DefinitionOverride;
+    }
+    return normalised;
+  } catch {
+    return {};
+  }
+}
+
+function overrideFor(
+  word: Word,
+  overrides: DefinitionOverrides,
+): WordDefinition | null {
+  const hit =
+    overrides[word.word.toLowerCase()] ??
+    overrides[(word.stem ?? "").toLowerCase()] ??
+    null;
+  if (!hit) return null;
+  return {
+    phonetic: hit.phonetic ?? null,
+    meanings: hit.meanings,
+    fetchedAt: new Date().toISOString(),
+  };
 }
 
 async function downloadCover(coverId: number, destPath: string): Promise<boolean> {
