@@ -49,6 +49,7 @@ public/*-stamp.png
 # editor + logs
 .vscode/
 .idea/
+.claude/
 *.log
 excalidraw.log
 
